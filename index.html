@@ -248,7 +248,7 @@ function translateGujaratiTree(root=document.body){
   if(!trimmed)continue;
   const translated=GUJARATI_TEXT[trimmed];
   const leading=original.match(/^\s*/)?.[0]||"",trailing=original.match(/\s*$/)?.[0]||"";
-  node.nodeValue=document.documentElement.lang==="gu"&&translated?leading+translated+trailing:original;
+  const nextValue=document.documentElement.lang==="gu"&&translated?leading+translated+trailing:original;if(node.nodeValue!==nextValue)node.nodeValue=nextValue;
  }
  root.querySelectorAll?.("input,textarea,select,button,[title],[aria-label]").forEach(el=>{
   ["placeholder","title","aria-label"].forEach(attr=>{
