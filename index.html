@@ -223,6 +223,63 @@ async function loadAdminHistory(){
  }catch(e){$("adminHistorySummary").textContent=e.message}
 }
 
-function setLanguage(lang){const gu=lang==="gu";const dict=gu?{"Overview":"ઝાંખી","Products":"પ્રોડક્ટ્સ","Inventory":"સ્ટોક","Suppliers":"સપ્લાયર્સ","Purchases":"ખરીદી","Expenses":"ખર્ચ","Payments":"ચુકવણી","Customers":"ગ્રાહકો","Admin History":"એડમિન ઇતિહાસ","Orders":"ઓર્ડર","Ledger":"ખાતાવહી","Inbox":"સંદેશા","Settings":"સેટિંગ્સ"}:{};document.querySelectorAll("#adminNav button,#customerNav button").forEach(el=>{if(!el.dataset.en)el.dataset.en=el.textContent.trim();el.textContent=dict[el.dataset.en]||el.dataset.en});document.documentElement.lang=gu?"gu":"en"}
+const GUJARATI_TEXT={
+"Sales & Customer Management Portal":"વેચાણ અને ગ્રાહક વ્યવસ્થાપન પોર્ટલ",
+"Welcome":"આપનું સ્વાગત છે","Apna access code daalein.":"તમારો ઍક્સેસ કોડ દાખલ કરો.",
+"Admin / Customer Code":"એડમિન / ગ્રાહક કોડ","I confirm I meet the applicable legal age requirement.":"હું પુષ્ટિ કરું છું કે હું લાગુ પડતી કાનૂની વયની શરત પૂર્ણ કરું છું.",
+"LOGIN":"લૉગિન કરો","Age confirmation alone is not legal identity verification. Follow applicable laws.":"માત્ર વયની પુષ્ટિ કાનૂની ઓળખની ચકાસણી નથી. લાગુ કાયદાઓનું પાલન કરો.",
+"Dashboard":"ડેશબોર્ડ","LOGOUT":"લૉગઆઉટ","Overview":"ઝાંખી","Products":"ઉત્પાદનો","Suppliers":"સપ્લાયર","Supplier Ledger":"સપ્લાયર ખાતાવહી","Purchases":"ખરીદી","Expenses":"ખર્ચ","Payments":"ચુકવણીઓ","Customers":"ગ્રાહકો","Customer Login":"ગ્રાહક લૉગિન","Admin History":"એડમિન ઇતિહાસ","Orders":"ઓર્ડર","Ledger":"ખાતાવહી","Reports & Export":"અહેવાલો અને નિકાસ","Inbox":"સંદેશા","Settings":"સેટિંગ્સ","My Cart":"મારી ખરીદીની ટોપલી","My Orders":"મારા ઓર્ડર","My Ledger":"મારી ખાતાવહી",
+"Business Overview":"વ્યવસાયની ઝાંખી","Refresh":"રીફ્રેશ કરો","Product name":"ઉત્પાદનનું નામ","Selling price ₹":"વેચાણ કિંમત ₹","Purchase price ₹":"ખરીદ કિંમત ₹","ADD PRODUCT":"ઉત્પાદન ઉમેરો","PROFIT":"નફો","Search products by name, brand, SKU or category...":"નામ, બ્રાન્ડ, SKU અથવા કેટેગરીથી ઉત્પાદન શોધો...","Quick Checkout":"ઝડપી ચેકઆઉટ","Add a note for this order (optional)":"આ ઓર્ડર માટે નોંધ ઉમેરો (વૈકલ્પિક)","No products selected.":"કોઈ ઉત્પાદન પસંદ કરેલ નથી.","Total: ₹0":"કુલ: ₹0","PLACE ORDER NOW":"હમણાં ઓર્ડર આપો","My Cart & Order Summary":"મારી ટોપલી અને ઓર્ડરની વિગતો","Please check product names, quantities and total before placing your order.":"ઓર્ડર આપતા પહેલાં ઉત્પાદનનાં નામ, જથ્થો અને કુલ રકમ તપાસો.","Your cart is empty. Go to Products and add items.":"તમારી ટોપલી ખાલી છે. ઉત્પાદનોમાં જઈ વસ્તુઓ ઉમેરો.","Items":"વસ્તુઓ","Order Total":"ઓર્ડરની કુલ રકમ","CONFIRM & PLACE ORDER":"ખાતરી કરો અને ઓર્ડર આપો","CLEAR CART":"ટોપલી ખાલી કરો","CONTINUE SHOPPING":"ખરીદી ચાલુ રાખો",
+"Supplier name":"સપ્લાયરનું નામ","Contact person":"સંપર્ક વ્યક્તિ","Phone":"ફોન","Email":"ઈમેલ","GSTIN":"GSTIN","Address":"સરનામું","ADD SUPPLIER":"સપ્લાયર ઉમેરો","Supplier Ledger Entries":"સપ્લાયર ખાતાવહીની નોંધો","+ Credit amount ₹":"+ જમા રકમ ₹","- Debit amount ₹":"- ઉધાર રકમ ₹","Entry note / details":"નોંધ / વિગતો","SAVE SUPPLIER ENTRY":"સપ્લાયર નોંધ સાચવો","No items.":"કોઈ વસ્તુ નથી.","Quantity":"જથ્થો","Unit cost":"એકમ કિંમત","ADD ITEM":"વસ્તુ ઉમેરો","Invoice number":"ઇન્વૉઇસ નંબર","Tax":"કર","Other charges":"અન્ય ચાર્જ","SAVE PURCHASE DRAFT":"ખરીદીનો ડ્રાફ્ટ સાચવો","Purchase Records":"ખરીદીના રેકોર્ડ",
+"Category":"કેટેગરી","Amount":"રકમ","Description":"વર્ણન","SAVE EXPENSE":"ખર્ચ સાચવો","Customer Payment":"ગ્રાહક પાસેથી ચુકવણી","Supplier Payment":"સપ્લાયરને ચુકવણી","Reference":"સંદર્ભ","SAVE PAYMENT":"ચુકવણી સાચવો","Customer Payments":"ગ્રાહકની ચુકવણીઓ","Supplier Payments":"સપ્લાયરની ચુકવણીઓ","Customer Login Details":"ગ્રાહક લૉગિનની વિગતો","Customer login status and most recent login time.":"ગ્રાહકની લૉગિન સ્થિતિ અને છેલ્લી લૉગિનનો સમય.","REFRESH":"ફરીથી લોડ કરો","Create Customer":"ગ્રાહક બનાવો","Customer name":"ગ્રાહકનું નામ","Customer code (6-12 characters)":"ગ્રાહક કોડ (6-12 અક્ષરો)","CREATE CUSTOMER":"ગ્રાહક બનાવો","Create Admin Code":"એડમિન કોડ બનાવો","Admin name":"એડમિનનું નામ","New admin code (6-12 digits)":"નવો એડમિન કોડ (6-12 અંકો)","CREATE ADMIN CODE":"એડમિન કોડ બનાવો","Admin Codes":"એડમિન કોડ","REFRESH HISTORY":"ઇતિહાસ ફરીથી લોડ કરો","Customer Balances & Ledger":"ગ્રાહક બાકી રકમ અને ખાતાવહી","Admin Action History":"એડમિનની કામગીરીનો ઇતિહાસ",
+"Track your order status, review items and open your invoice anytime.":"તમારા ઓર્ડરની સ્થિતિ જુઓ, વસ્તુઓ તપાસો અને ગમે ત્યારે ઇન્વૉઇસ ખોલો.","Search order ID or product...":"ઓર્ડર ID અથવા ઉત્પાદન શોધો...","All order statuses":"બધી ઓર્ડર સ્થિતિ","Pending":"બાકી","Accepted":"સ્વીકારેલ","Cancelled":"રદ કરેલ","Account Ledger":"ખાતાવહી","New Customer Entry":"ગ્રાહકની નવી નોંધ","SAVE ENTRY":"નોંધ સાચવો","Business Reports & Export":"વ્યવસાય અહેવાલો અને નિકાસ","Sales, estimated profit, supplier balances and daily cash movement.":"વેચાણ, અંદાજિત નફો, સપ્લાયરની બાકી રકમ અને દૈનિક રોકડ હિલચાલ.","Daily Cash Book":"દૈનિક રોકડ હિસાબ","Export CSV":"CSV નિકાસ કરો","ORDERS CSV":"ઓર્ડર CSV","EXPENSES CSV":"ખર્ચ CSV","PAYMENTS CSV":"ચુકવણી CSV","REFRESH REPORTS":"અહેવાલો ફરીથી લોડ કરો","All customers":"બધા ગ્રાહકો","One customer":"એક ગ્રાહક","Customer code for personal message":"વ્યક્તિગત સંદેશા માટે ગ્રાહક કોડ","Message":"સંદેશો","SEND MESSAGE":"સંદેશો મોકલો","Business Settings":"વ્યવસાય સેટિંગ્સ","Do not save passwords, API keys or secret tokens here.":"અહીં પાસવર્ડ, API કી અથવા ગુપ્ત ટોકન સાચવશો નહીં.","Setting key":"સેટિંગ કી","Setting value":"સેટિંગ મૂલ્ય","SAVE SETTING":"સેટિંગ સાચવો",
+"ADD GST":"GST ઉમેરો","WHATSAPP":"વોટ્સએપ","PRINT / SAVE PDF":"પ્રિન્ટ / PDF સાચવો","CLOSE":"બંધ કરો","ORDER INVOICE":"ઓર્ડર ઇન્વૉઇસ","Order ID":"ઓર્ડર ID","Date":"તારીખ","Status":"સ્થિતિ","Customer":"ગ્રાહક","Product":"ઉત્પાદન","Qty":"જથ્થો","Unit Price":"એકમ કિંમત","No item details available":"વસ્તુની વિગતો ઉપલબ્ધ નથી","Thank you for your order.":"તમારા ઓર્ડર બદલ આભાર.","VIEW INVOICE":"ઇન્વૉઇસ જુઓ","ACCEPT":"સ્વીકારો","CANCEL":"રદ કરો","EDIT PRICE":"કિંમત બદલો","DEACTIVATE":"નિષ્ક્રિય કરો","ACTIVATE":"સક્રિય કરો","ADD TO CART":"ટોપલીમાં ઉમેરો","No matching products found.":"મેળ ખાતા ઉત્પાદનો મળ્યા નથી.","No products available right now.":"હાલમાં કોઈ ઉત્પાદન ઉપલબ્ધ નથી.","already in your cart":"પહેલેથી તમારી ટોપલીમાં છે","No records found.":"કોઈ રેકોર્ડ મળ્યો નથી.","No orders match your search.":"તમારી શોધ સાથે મેળ ખાતા ઓર્ડર મળ્યા નથી.","No customer entries yet.":"હજુ સુધી ગ્રાહકની કોઈ નોંધ નથી.","Customer Ledger Balances":"ગ્રાહક ખાતાવહીની બાકી રકમ","Your Current Ledger Balance":"તમારી હાલની ખાતાવહીની બાકી રકમ","Positive = credit · Negative = debit":"ધન = જમા · ઋણ = ઉધાર","Note":"નોંધ","Action":"કાર્યवाही","DELETE":"કાઢી નાખો","READ RECEIPTS":"વાંચ્યાની વિગતો","Group message":"જૂથ સંદેશો","Personal message":"વ્યક્તિગત સંદેશો","✓ Read":"✓ વાંચ્યો","MARK READ":"વાંચ્યો તરીકે ચિહ્નિત કરો","READ":"વાંચ્યું","Yes":"હા","No":"ના","When":"ક્યારે","Admin":"એડમિન","Type":"પ્રકાર","Details":"વિગતો","Combined balance":"કુલ બાકી રકમ","Customer accounts":"ગ્રાહક ખાતાં","Admin actions":"એડમિન કામગીરી","Added by Admin":"એડમિન દ્વારા ઉમેર્યું",
+"Sales (excl. GST)":"વેચાણ (GST સિવાય)","GST Collected":"વસૂલ કરેલ GST","Estimated Product Cost":"ઉત્પાદનની અંદાજિત કિંમત","Expenses":"ખર્ચ","Estimated Profit / Loss":"અંદાજિત નફો / નુકસાન","Customer Receipts":"ગ્રાહક પાસેથી મળેલ રકમ","Supplier Payments":"સપ્લાયરને ચુકવેલ રકમ","Net Movement":"ચોખ્ખી હિલચાલ","Updated. Profit is an estimate and excludes tax, returns and other accounting adjustments.":"અપડેટ થયું. નફો અંદાજિત છે અને તેમાં કર, પરત કરેલી વસ્તુઓ તથા અન્ય હિસાબી સુધારા સામેલ નથી.",
+"Product saved":"ઉત્પાદન સાચવાયું","Supplier saved":"સપ્લાયર સાચવાયો","Payment saved":"ચુકવણી સાચવાઈ","Saved":"સાચવાયું","Message sent":"સંદેશો મોકલાયો","Supplier ledger entry saved.":"સપ્લાયરની ખાતાવહીની નોંધ સાચવાઈ.","Ledger entry saved and customer balance updated.":"ખાતાવહીની નોંધ સાચવાઈ અને ગ્રાહકની બાકી રકમ અપડેટ થઈ.","Please confirm the applicable legal age requirement.":"કૃપા કરીને લાગુ પડતી કાનૂની વયની શરતની પુષ્ટિ કરો.","Enter product name.":"ઉત્પાદનનું નામ દાખલ કરો.","Enter both selling and purchase prices.":"વેચાણ અને ખરીદ બંને કિંમતો દાખલ કરો.","Enter valid prices":"યોગ્ય કિંમતો દાખલ કરો","Deactivate product?":"ઉત્પાદન નિષ્ક્રિય કરવું છે?","Please select a valid quantity.":"કૃપા કરીને યોગ્ય જથ્થો પસંદ કરો.","Remove all items from your cart?":"તમારી ટોપલીમાંથી બધી વસ્તુઓ દૂર કરવી છે?","Enter either + Credit OR - Debit amount.":"+ જમા અથવા - ઉધાર રકમમાંથી એક દાખલ કરો.","Enter a valid amount.":"યોગ્ય રકમ દાખલ કરો.","Enter either credit OR debit amount.":"જમા અથવા ઉધાર રકમમાંથી એક દાખલ કરો.","Delete this ledger entry permanently?":"આ ખાતાવહીની નોંધ કાયમ માટે કાઢી નાખવી છે?","Delete this supplier ledger entry permanently?":"સપ્લાયરની આ ખાતાવહીની નોંધ કાયમ માટે કાઢી નાખવી છે?","Enter GST percentage for this invoice (0 to 28)":"આ ઇન્વૉઇસ માટે GST ટકાવારી દાખલ કરો (0 થી 28)","Enter GST from 0 to 28.":"GST 0 થી 28 વચ્ચે દાખલ કરો.","Confirm accepted?":"સ્વીકારવાની પુષ્ટિ કરો?","Confirm cancelled?":"રદ કરવાની પુષ્ટિ કરો?","No records to export.":"નિકાસ કરવા માટે કોઈ રેકોર્ડ નથી.","Report error: ":"અહેવાલમાં ભૂલ: ","Request failed":"વિનંતી નિષ્ફળ ગઈ","Never logged in":"ક્યારેય લૉગિન કર્યું નથી","Active":"સક્રિય","Inactive":"નિષ્ક્રિય","Created":"બનાવ્યું","Name":"નામ","Method":"રીત","Time":"સમય","Value":"મૂલ્ય","Key":"કી","Cash":"રોકડ","cash":"રોકડ","upi":"UPI","bank":"બેંક","card":"કાર્ડ"
+};
+const languageTextNodes=new WeakMap();
+function translateGujaratiTree(root=document.body){
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+ let node;
+ while((node=walker.nextNode())){
+  if(!languageTextNodes.has(node))languageTextNodes.set(node,node.nodeValue);
+  const original=languageTextNodes.get(node);
+  const trimmed=original.trim();
+  if(!trimmed)continue;
+  const translated=GUJARATI_TEXT[trimmed];
+  const leading=original.match(/^\s*/)?.[0]||"",trailing=original.match(/\s*$/)?.[0]||"";
+  node.nodeValue=document.documentElement.lang==="gu"&&translated?leading+translated+trailing:original;
+ }
+ root.querySelectorAll?.("input,textarea,select,button,[title],[aria-label]").forEach(el=>{
+  ["placeholder","title","aria-label"].forEach(attr=>{
+   if(!el.hasAttribute(attr))return;
+   const key="data-lang-original-"+attr;
+   if(!el.hasAttribute(key))el.setAttribute(key,el.getAttribute(attr));
+   const original=el.getAttribute(key);
+   el.setAttribute(attr,document.documentElement.lang==="gu"?(GUJARATI_TEXT[original]||original):original);
+  });
+ });
+}
+let languageObserver=null;
+function setLanguage(lang){
+ const selected=lang==="gu"?"gu":"en";
+ document.documentElement.lang=selected;
+ try{localStorage.setItem("jaliyaan_language",selected)}catch{}
+ if($("languageSelect"))$("languageSelect").value=selected;
+ translateGujaratiTree(document.body);
+}
+try{
+ const savedLanguage=localStorage.getItem("jaliyaan_language");
+ if(savedLanguage==="gu")setLanguage("gu");
+}catch{}
+languageObserver=new MutationObserver(changes=>{
+ if(document.documentElement.lang!=="gu")return;
+ for(const change of changes){
+  if(change.type==="childList")change.addedNodes.forEach(node=>{if(node.nodeType===Node.ELEMENT_NODE)translateGujaratiTree(node);else if(node.nodeType===Node.TEXT_NODE)translateGujaratiTree(node.parentElement||document.body)});
+  else if(change.type==="characterData")translateGujaratiTree(change.target.parentElement||document.body);
+ }
+});
+languageObserver.observe(document.body,{childList:true,subtree:true,characterData:true});
+
 $("code").addEventListener("keydown",e=>{if(e.key==="Enter")login()});restoreSession();
 </script></body></html>
