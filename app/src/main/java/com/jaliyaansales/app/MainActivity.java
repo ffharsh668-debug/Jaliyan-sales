@@ -7,44 +7,48 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebChromeClient;
-import android.view.KeyEvent;
 
 public class MainActivity extends Activity {
     private WebView webView;
+
+    private static final String WEBSITE_URL =
+            "https://stunning-phoenix-da99ce.netlify.app/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        webView = new WebView(this);
+
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
-        cookieManager.setAcceptThirdPartyCookies(createWebView(), true);
+        cookieManager.setAcceptThirdPartyCookies(webView, true);
 
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.getSettings().setDomStorageEnabled(true);
-        webView.getSettings().setDatabaseEnabled(true);
-        webView.getSettings().setLoadWithOverviewMode(true);
-        webView.getSettings().setUseWideViewPort(true);
-        webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
 
         setContentView(webView);
+
         if (savedInstanceState == null) {
-            webView.loadUrl("https://jaliyaansales2.netlify.app/");
+            webView.loadUrl(WEBSITE_URL);
         } else {
             webView.restoreState(savedInstanceState);
         }
     }
 
-    private WebView createWebView() {
-        webView = new WebView(this);
-        return webView;
-    }
-
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        if (webView != null) webView.saveState(outState);
+        if (webView != null) {
+            webView.saveState(outState);
+        }
         super.onSaveInstanceState(outState);
     }
 
