@@ -200,8 +200,7 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
     if (!role) {
       const { data, error } = await db
         .from("customers")
-        .select("id,display_name,access_code_hash,active")
-        .eq("active", true);
+        .select("id,display_name,access_code_hash,active");
 
       if (error) {
         return res.status(500).json({ error: "Could not check customer code." });
@@ -244,7 +243,8 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
     : {
         role,
         customerId: customer.id,
-        displayName: customer.display_name
+        displayName: customer.display_name,
+        active: customer.active !== false
       };
 
   const token = signSession({
@@ -261,7 +261,8 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
 
   res.json({
     role,
-    displayName: user.displayName
+    displayName: user.displayName,
+    active: user.active !== false
   });
 });
 
@@ -507,6 +508,29 @@ app.get("/api/customers", needDb, auth, admin, async (req, res) => {
   res.json(data);
 });
 
+app.patch("/api/customers/:id/status", needDb, auth, admin, async (req, res) => {
+  const active = req.body.active;
+  if (typeof active !== "boolean") {
+    return res.status(400).json({ error: "Choose Active or Inactive." });
+  }
+
+  const { data, error } = await db
+    .from("customers")
+    .update({ active })
+    .eq("id", req.params.id)
+    .select("id,display_name,active,created_at,last_login_at")
+    .single();
+
+  if (error || !data) {
+    return res.status(400).json({ error: "Could not update customer status." });
+  }
+
+  await audit(req, active ? "customer_activated" : "customer_deactivated",
+    "customer", data.id, { display_name: data.display_name });
+
+  res.json(data);
+});
+
 app.post("/api/customers", needDb, auth, admin, async (req, res) => {
   const { display_name, code } = req.body;
 
@@ -567,6 +591,19 @@ app.post("/api/orders", needDb, auth, orderLimiter, async (req, res) => {
     return res.status(403).json({
       error: "Customer account required."
     });
+  }
+
+  const { data: customerStatus, error: customerStatusError } = await db
+    .from("customers")
+    .select("id,active")
+    .eq("id", req.user.customerId)
+    .maybeSingle();
+
+  if (customerStatusError || !customerStatus) {
+    return res.status(403).json({ error: "Customer account could not be verified. Please contact admin." });
+  }
+  if (customerStatus.active === false) {
+    return res.status(403).json({ error: "You are inactive by admin. Please Contact admin to Activate your account." });
   }
 
   const items = Array.isArray(req.body.items)
@@ -653,6 +690,16 @@ app.delete("/api/orders/:id", needDb, auth, async (req, res) => {
     return res.status(403).json({
       error: "Customer account required."
     });
+  }
+
+  const { data: customerStatus } = await db
+    .from("customers")
+    .select("active")
+    .eq("id", req.user.customerId)
+    .maybeSingle();
+
+  if (!customerStatus || customerStatus.active === false) {
+    return res.status(403).json({ error: "You are inactive by admin. Please Contact admin to Activate your account." });
   }
 
   const { data: order, error } = await db
