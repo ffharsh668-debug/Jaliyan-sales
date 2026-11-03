@@ -64,7 +64,35 @@ td,th{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb}
 </div><button class="success" style="width:auto" onclick="openInbox()">📩 INBOX</button>
 <button class="danger" style="width:auto" onclick="logout()">LOGOUT</button>
 </div>
+<div id="inboxSection" class="card hidden">
+  <div class="row">
+    <h2>📩 My Inbox</h2>
+    <button style="width:auto" onclick="loadInbox()">REFRESH</button>
+  </div>
 
+  <div id="adminInboxForm" class="hidden">
+    <h3>Send New Message</h3>
+
+    <select id="inboxType" onchange="togglePersonalMessage()">
+      <option value="group">Group Message - All Customers</option>
+      <option value="personal">Personal Message - One Customer</option>
+    </select>
+
+    <div id="personalCodeBox" class="hidden">
+      <input id="inboxCustomerCode" placeholder="Enter Customer Code">
+    </div>
+
+    <textarea id="inboxBody" maxlength="5000"
+      placeholder="Write your message here..."></textarea>
+
+    <button onclick="sendInboxMessage()">SEND MESSAGE</button>
+    <div id="inboxSendMessage" class="message"></div>
+  </div>
+
+  <hr>
+  <h3>All Messages</h3>
+  <div id="inboxMessages">Loading messages...</div>
+</div>
 <div class="card">
 <h2>Products</h2>
 
