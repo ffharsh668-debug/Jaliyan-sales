@@ -289,7 +289,7 @@ app.get("/api/me", auth, (req, res) => {
 
 app.get("/api/products", needDb, auth, async (req, res) => {
   const productFields = req.user.role === "admin"
-    ? "*"
+    ? "id,name,description,price,cost_price,sku,category,unit,brand,pack_size,barcode,active"
     : "id,name,description,price,sku,category,unit,brand,pack_size,barcode,active";
   const { data, error } = await db
     .from("products")
@@ -1791,7 +1791,7 @@ app.get("/api/dashboard", needDb, auth, admin, async (req, res) => {
     expenses,
     suppliers
   ] = await Promise.all([
-    db.from("products").select("id,stock_quantity,low_stock_threshold,price,cost_price").eq("active", true),
+    db.from("products").select("id,price,cost_price").eq("active", true),
     db.from("customers").select("id,active").eq("active", true),
     db.from("orders").select("id,total,status,created_at"),
     db.from("expenses").select("amount,expense_date"),
@@ -1821,9 +1821,6 @@ app.get("/api/dashboard", needDb, auth, admin, async (req, res) => {
     totalOrders: orderRows.length,
     pendingOrders: orderRows.filter(o => o.status === "pending").length,
     acceptedOrders: orderRows.filter(o => o.status === "accepted").length,
-    lowStockProducts: productRows.filter(
-      p => Number(p.stock_quantity) <= Number(p.low_stock_threshold)
-    ).length,
     totalOrderValue: orderRows.reduce(
       (sum, o) => sum + Number(o.total || 0), 0
     ),
