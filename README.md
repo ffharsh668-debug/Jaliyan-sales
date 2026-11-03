@@ -1,39 +1,58 @@
-# JALIYAAN SALES — Netlify version
+# JALIYAAN SALES
 
-Private customer order and ledger portal with a white-and-gold theme. This package is prepared for Netlify static hosting plus a Netlify Function backend. It is **not published yet** and will not work until the Supabase database and Netlify environment variables are configured.
+JALIYAAN SALES is a customer ordering and business-management portal. The frontend is the root-level `index.html`; the Express API runs locally or through the Netlify Function adapter.
 
-## Features in this starter
-- Admin and customers sign in with numeric codes only.
-- Admin can create customer names and numeric codes (6–12 digits).
-- Product catalogue, orders, customer-only order history, and ledger entries persist in Supabase.
-- Admin can accept/cancel pending orders; customers see status.
-- Customers can delete their own pending order within 5 minutes, if the admin has not handled it.
-- Wrong code displays an “Invalid code” message below the input.
-- No online payment system is included.
-- Optional WhatsApp Cloud API notification hook; it needs separate credentials and setup.
+## Current features
 
-## Required setup before publishing
-1. Create a Supabase project and open its SQL Editor.
-2. Run the full contents of `sql/schema.sql`.
-3. In Netlify, import/upload this project as a site with the included `netlify.toml`; ensure build settings use the `public` folder and `netlify/functions` folder as configured.
-4. Add these environment variables in Netlify Site configuration → Environment variables:
-   - `SUPABASE_URL` — Supabase project URL
-   - `SUPABASE_SERVICE_ROLE_KEY` — Supabase service-role key (secret; never place in browser code)
-   - `ADMIN_CODE` — admin numeric code; this package is set up for `583174`
-   - `SESSION_SECRET` — long random secret (at least 32 characters)
-   - `NODE_ENV` — `production`
-5. Install dependencies/build in Netlify. `package.json` includes `serverless-http` for the function adapter.
-6. Redeploy after setting environment variables. Test login, add one test product, create a test customer, place an order, and test ledger visibility before using real customer data.
+- Admin and customer access-code login with signed HTTP-only session cookies.
+- Product catalogue and customer cart/order placement.
+- Admin order review, accept/cancel actions, invoices, print/PDF and WhatsApp text sharing.
+- Customer ledger, payments, supplier directory and supplier ledger.
+- Purchase drafts, expenses, daily cash book, CSV exports and estimated profit reports.
+- Customer inbox, read receipts, customer login history and admin action history.
+- English and Gujarati interface translations.
+- Android WebView wrapper and GitHub Actions debug APK build.
 
-## Security and privacy notes
-- The published URL is reachable by anyone who has it; sharing the link privately is not the same as making the site inaccessible to the public. Admin/customer codes protect the app's features.
-- The app uses a signed, HTTP-only session cookie so login does not depend on a temporary in-memory session store.
-- Keep the Supabase service-role key only in Netlify environment variables. Never share screenshots that reveal it.
-- Choose unique customer codes and send them privately. A numeric code is less secure than a strong password or one-time code; avoid easy-to-guess codes.
-- The optional WhatsApp notification only works after the Meta WhatsApp Cloud API is configured and tested.
-- Verify applicable laws and age restrictions before listing or selling tobacco products.
+## Supabase setup
 
-## Local development (optional)
-1. `npm install`
-2. Copy `.env.example` to `.env` and fill in valid secrets.
-3. `npm start`
+1. Create a Supabase project and open **SQL Editor**.
+2. Run the complete contents of `schema.sql`. It is designed to be re-runnable and adds the tables/columns required by the current backend without dropping existing data.
+3. Keep the Supabase service-role key secret. It belongs only in server environment variables.
+
+## Netlify setup
+
+This repository includes `netlify.toml`:
+- Publish directory: repository root (`.`)
+- Functions directory: `netlify/functions`
+- API requests under `/api/*` are redirected to the Netlify Function.
+
+Configure these environment variables in Netlify:
+
+- `SUPABASE_URL` — Supabase project URL.
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service-role key; never put it in browser code.
+- `ADMIN_CODE` — private main admin access code.
+- `SESSION_SECRET` — long random secret (at least 32 characters).
+- `NODE_ENV` — set to `production`.
+
+Optional WhatsApp Cloud API notifications require `ADMIN_WHATSAPP_NUMBER`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and optionally `WHATSAPP_API_VERSION`.
+
+After configuring variables, trigger a new production deploy. Check the deploy log and test admin login, customer login, product loading, a test order, order acceptance, ledger update, payment entry and inbox before using real transactions.
+
+## Local development
+
+1. Install Node.js 18 or newer.
+2. Run `npm install`.
+3. Set the environment variables listed above (for local use, `NODE_ENV` can be omitted).
+4. Run `npm start` and open `http://localhost:3000`.
+
+## Android APK
+
+The GitHub Actions workflow `.github/workflows/android-apk.yml` builds a debug APK on pushes to `main` and on manual runs. Download the `JALIYAAN-SALES-APK` artifact from the completed workflow run.
+
+## Security and accounting notes
+
+- The site URL is public; access codes protect application features but do not make the URL private.
+- The service-role key must remain server-side. Do not store credentials or API secrets in Business Settings.
+- Customer access codes are hashed in Supabase. Use unique, hard-to-guess codes and share them privately.
+- The profit and cash-book reports are operational estimates, not audited accounts or statutory GST-compliant accounting.
+- Age confirmation in the interface is not identity verification. Follow all applicable laws and verify customer eligibility independently where required.
