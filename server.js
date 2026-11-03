@@ -139,6 +139,28 @@ function numericCode(code) {
   );
 }
 
+// Codes are bcrypt-hashed, so compare against every existing account before
+// creating a new one; UNIQUE on hashes alone cannot prevent duplicate raw codes.
+async function accessCodeAlreadyUsed(code) {
+  if (process.env.ADMIN_CODE && code === process.env.ADMIN_CODE) return true;
+
+  const [admins, customers] = await Promise.all([
+    db.from("admin_codes").select("access_code_hash"),
+    db.from("customers").select("access_code_hash")
+  ]);
+
+  if (admins.error || customers.error) {
+    throw new Error("Could not verify whether the access code is already in use.");
+  }
+
+  for (const row of [...(admins.data || []), ...(customers.data || [])]) {
+    if (row.access_code_hash && await bcrypt.compare(code, row.access_code_hash)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function validAmount(value, allowZero = false) {
   const n = Number(value);
 
@@ -456,8 +478,14 @@ app.post("/api/admin-codes", needDb, auth, admin, async (req, res) => {
   if (!displayName || !numericCode(code)) {
     return res.status(400).json({ error: "Admin name and valid 6-12 character code required." });
   }
-  if (process.env.ADMIN_CODE && code === process.env.ADMIN_CODE) {
-    return res.status(400).json({ error: "This code is already used by the main admin." });
+  let codeInUse;
+  try {
+    codeInUse = await accessCodeAlreadyUsed(code);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+  if (codeInUse) {
+    return res.status(409).json({ error: "This access code is already assigned to another account." });
   }
   const hash = await bcrypt.hash(code, 12);
   const { data, error } = await db.from("admin_codes")
@@ -544,6 +572,16 @@ app.post("/api/customers", needDb, auth, admin, async (req, res) => {
     return res.status(400).json({
       error: "Name and valid access code required."
     });
+  }
+
+  let codeInUse;
+  try {
+    codeInUse = await accessCodeAlreadyUsed(String(code));
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+  if (codeInUse) {
+    return res.status(409).json({ error: "This access code is already assigned to another account." });
   }
 
   const hash = await bcrypt.hash(String(code), 12);
