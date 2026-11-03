@@ -135,6 +135,34 @@ function list(data){
 }
 
 async function login(){
+async function addProduct(){
+  const name=document.getElementById("productName").value.trim();
+  const price=Number(document.getElementById("productPrice").value);
+  const description=document.getElementById("productDescription").value.trim();
+  const msg=document.getElementById("productMessage");
+
+  if(!name || !Number.isFinite(price) || price<0){
+    msg.textContent="Enter valid product name and price.";
+    return;
+  }
+
+  msg.textContent="Saving product...";
+
+  try{
+    await api("/api/products",{
+      method:"POST",
+      body:JSON.stringify({name,price,description})
+    });
+
+    msg.textContent="Product added successfully!";
+    document.getElementById("productName").value="";
+    document.getElementById("productPrice").value="";
+    document.getElementById("productDescription").value="";
+    await loadProducts();
+  }catch(e){
+    msg.textContent=e.message;
+  }
+}  
   const code=document.getElementById("loginCode").value.trim();
   const msg=document.getElementById("loginMessage");
 
@@ -160,7 +188,7 @@ async function showDashboard(){
   document.getElementById("dashboard").classList.remove("hidden");
 
   const role=currentUser?.role||"customer";
-  const isAdmin=role==="admin";
+  const isAdmin=role==="admin";document.getElementById("adminProductForm").style.display=isAdmin?"block":"none";
 
   document.getElementById("welcome").textContent=
     isAdmin?"Admin Dashboard":"Customer Dashboard";
