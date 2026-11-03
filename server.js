@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const path = require("path");
 const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
@@ -13,7 +14,8 @@ const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
-app.use(express.static("public"));
+// Serve the root-level frontend during local Node.js development.
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index.html")));
 
 const supabaseReady = !!(
   process.env.SUPABASE_URL &&
@@ -729,14 +731,26 @@ app.delete("/api/orders/:id", needDb, auth, async (req, res) => {
     });
   }
 
-  const { error: deleteError } = await db
+  // Re-check ownership, status and expiry in the DELETE itself to prevent
+  // a race where Admin accepts an order after the read but before deletion.
+  const { data: deleted, error: deleteError } = await db
     .from("orders")
     .delete()
-    .eq("id", order.id);
+    .eq("id", order.id)
+    .eq("customer_id", req.user.customerId)
+    .eq("status", "pending")
+    .gt("editable_until", new Date().toISOString())
+    .select("id")
+    .maybeSingle();
 
   if (deleteError) {
     return res.status(500).json({
       error: "Could not delete order."
+    });
+  }
+  if (!deleted) {
+    return res.status(403).json({
+      error: "Order can no longer be deleted."
     });
   }
 
