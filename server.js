@@ -142,10 +142,12 @@ function validAmount(value, allowZero = false) {
   );
 }
 
-async function audit(action, entityType, entityId = "", details = {}) {
+async function audit(req, action, entityType, entityId = "", details = {}) {
   try {
     await db.from("audit_logs").insert({
-      actor_role: "admin",
+      actor_role: req?.user?.role || "admin",
+      actor_id: req?.user?.adminId || null,
+      actor_name: req?.user?.displayName || "Admin",
       action,
       entity_type: entityType,
       entity_id: String(entityId),
@@ -172,29 +174,48 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
 
   let role = null;
   let customer = null;
+  let adminUser = null;
 
   if (process.env.ADMIN_CODE && code === process.env.ADMIN_CODE) {
     role = "admin";
+    adminUser = { id: null, display_name: "Main Admin" };
   } else {
-    const { data, error } = await db
-      .from("customers")
-      .select("id,display_name,access_code_hash,active")
+    const { data: adminCodes, error: adminError } = await db
+      .from("admin_codes")
+      .select("id,display_name,access_code_hash")
       .eq("active", true);
 
-    if (error) {
-      return res.status(500).json({
-        error: "Could not check customer code."
-      });
+    if (adminError) {
+      return res.status(500).json({ error: "Could not check admin codes." });
     }
 
-    for (const c of data || []) {
-      if (await bcrypt.compare(code, c.access_code_hash)) {
-        customer = c;
+    for (const a of adminCodes || []) {
+      if (await bcrypt.compare(code, a.access_code_hash)) {
+        adminUser = a;
+        role = "admin";
         break;
       }
     }
 
-    if (customer) role = "customer";
+    if (!role) {
+      const { data, error } = await db
+        .from("customers")
+        .select("id,display_name,access_code_hash,active")
+        .eq("active", true);
+
+      if (error) {
+        return res.status(500).json({ error: "Could not check customer code." });
+      }
+
+      for (const c of data || []) {
+        if (await bcrypt.compare(code, c.access_code_hash)) {
+          customer = c;
+          break;
+        }
+      }
+
+      if (customer) role = "customer";
+    }
   }
 
   if (!role) {
@@ -210,7 +231,11 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
   }
 
   const user = role === "admin"
-    ? { role }
+    ? {
+        role,
+        adminId: adminUser?.id || null,
+        displayName: adminUser?.display_name || "Main Admin"
+      }
     : {
         role,
         customerId: customer.id,
@@ -231,7 +256,7 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
 
   res.json({
     role,
-    displayName: customer?.display_name || "Admin"
+    displayName: user.displayName
   });
 });
 
@@ -328,7 +353,7 @@ app.post("/api/products", needDb, auth, admin, async (req, res) => {
     });
   }
 
-  await audit("product_created", "product", data.id);
+  await audit(req, "product_created", "product", data.id);
 
   res.json(data);
 });
@@ -377,7 +402,7 @@ app.patch("/api/products/:id", needDb, auth, admin, async (req, res) => {
     });
   }
 
-  await audit("product_updated", "product", data.id);
+  await audit(req, "product_updated", "product", data.id);
 
   res.json(data);
 });
@@ -398,11 +423,66 @@ app.delete("/api/products/:id", needDb, auth, admin, async (req, res) => {
 
   res.json({ success: true, product: data });
 });
-
-
 // ==========================================
 // CUSTOMERS
 // ==========================================
+
+app.get("/api/admin-codes", needDb, auth, admin, async (req, res) => {
+  const { data, error } = await db.from("admin_codes")
+    .select("id,display_name,active,created_at")
+    .order("created_at", { ascending: false });
+  if (error) return res.status(500).json({ error: "Could not load admin codes." });
+  res.json(data || []);
+});
+
+app.post("/api/admin-codes", needDb, auth, admin, async (req, res) => {
+  const displayName = String(req.body.display_name || "").trim();
+  const code = String(req.body.code || "");
+  if (!displayName || !numericCode(code)) {
+    return res.status(400).json({ error: "Admin name and valid 6-12 character code required." });
+  }
+  if (process.env.ADMIN_CODE && code === process.env.ADMIN_CODE) {
+    return res.status(400).json({ error: "This code is already used by the main admin." });
+  }
+  const hash = await bcrypt.hash(code, 12);
+  const { data, error } = await db.from("admin_codes")
+    .insert({ display_name: displayName, access_code_hash: hash, active: true })
+    .select("id,display_name,active,created_at").single();
+  if (error) return res.status(400).json({ error: "Could not create admin code. Code may already exist." });
+  await audit(req, "admin_code_created", "admin_code", data.id, { display_name: displayName });
+  res.json(data);
+});
+
+app.patch("/api/admin-codes/:id", needDb, auth, admin, async (req, res) => {
+  const active = req.body.active;
+  if (typeof active !== "boolean") return res.status(400).json({ error: "Active status required." });
+  const { data, error } = await db.from("admin_codes")
+    .update({ active }).eq("id", req.params.id)
+    .select("id,display_name,active,created_at").single();
+  if (error) return res.status(500).json({ error: "Could not update admin code." });
+  await audit(req, active ? "admin_code_activated" : "admin_code_deactivated",
+    "admin_code", data.id, { display_name: data.display_name });
+  res.json(data);
+});
+
+app.get("/api/admin-history", needDb, auth, admin, async (req, res) => {
+  const [customersResult, ledgerResult, logsResult] = await Promise.all([
+    db.from("customers").select("id,display_name,active,created_at").order("display_name"),
+    db.from("ledger_entries").select("id,customer_id,amount,note,created_at")
+      .order("created_at", { ascending: false }).limit(2000),
+    db.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(500)
+  ]);
+  if (customersResult.error || ledgerResult.error || logsResult.error) {
+    return res.status(500).json({ error: "Could not load admin history." });
+  }
+  const entries = ledgerResult.data || [];
+  const customers = (customersResult.data || []).map(customer => {
+    const customerEntries = entries.filter(entry => entry.customer_id === customer.id);
+    const balance = customerEntries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+    return { ...customer, balance, totalEntries: customerEntries.length, entries: customerEntries };
+  });
+  res.json({ customers, actions: logsResult.data || [] });
+});
 
 app.get("/api/customers", needDb, auth, admin, async (req, res) => {
   const { data, error } = await db
@@ -446,6 +526,9 @@ app.post("/api/customers", needDb, auth, admin, async (req, res) => {
     });
   }
 
+  await audit(req, "customer_created", "customer", data.id, {
+    display_name: data.display_name
+  });
   res.json(data);
 });
 
@@ -638,6 +721,18 @@ app.patch("/api/orders/:id/status", needDb, auth, admin, async (req, res) => {
     });
   }
 
+  await audit(req, "order_status_updated", "order", data.id, {
+    status: data.status, customer_id: data.customer_id
+  });
+  const orderMessage = status === "accepted"
+    ? "Your order has been accepted."
+    : "Your order has been cancelled.";
+  const { error: inboxError } = await db.from("inbox_messages").insert({
+    message_type: "personal",
+    recipient_customer_id: data.customer_id,
+    body: orderMessage
+  });
+  if (inboxError) console.error("ORDER INBOX ERROR:", inboxError.message);
   res.json(data);
 });
 
@@ -702,11 +797,22 @@ app.post("/api/ledger", needDb, auth, admin, async (req, res) => {
     });
   }
 
+  const { data: customer } = await db.from("customers")
+    .select("display_name").eq("id", customer_id).single();
+  const amountText = Number(amount) > 0
+    ? `₹${Number(amount).toFixed(2)} credit hua`
+    : `₹${Math.abs(Number(amount)).toFixed(2)} debit hua`;
+  const { error: inboxError } = await db.from("inbox_messages").insert({
+    message_type: "personal",
+    recipient_customer_id: customer_id,
+    body: `Account Update: ${amountText}. Note: ${String(note || "Ledger updated")}`
+  });
+  if (inboxError) console.error("LEDGER INBOX ERROR:", inboxError.message);
+  await audit(req, "ledger_entry_created", "ledger", data.id, {
+    customer_id, amount: Number(amount), customer_name: customer?.display_name || ""
+  });
   res.json(data);
-});
-
-
-// ==========================================
+});// ==========================================
 // SUPPLIERS
 // ==========================================
 
@@ -762,7 +868,7 @@ app.post("/api/suppliers", needDb, auth, admin, async (req, res) => {
     });
   }
 
-  await audit("supplier_created", "supplier", data.id);
+  await audit(req, "supplier_created", "supplier", data.id);
 
   res.json(data);
 });
@@ -900,83 +1006,61 @@ app.post("/api/purchases", needDb, auth, admin, async (req, res) => {
 
     if (productError || !product) {
       return res.status(400).json({
-        error: "Product not found."
+        error: "Purchase product not found."
       });
     }
 
-    const lineTotal = quantity * unitCost;
-    subtotal += lineTotal;
+    subtotal += quantity * unitCost;
 
     safeItems.push({
       product_id: product.id,
+      name: product.name,
       quantity,
-      unit_cost: unitCost,
-      line_total: lineTotal
+      unit_cost: unitCost
     });
   }
 
   const total =
     subtotal + Number(tax_amount) + Number(other_charges);
 
-  const { data: purchase, error } = await db
+  const { data, error } = await db
     .from("purchases")
     .insert({
       supplier_id,
       invoice_number,
       purchase_date: purchase_date || new Date().toISOString().slice(0, 10),
+      items: safeItems,
       subtotal,
       tax_amount: Number(tax_amount),
       other_charges: Number(other_charges),
       total,
       amount_paid: Number(amount_paid),
-      status: "draft",
-      notes
+      notes,
+      status: "draft"
     })
     .select()
     .single();
 
   if (error) {
     return res.status(500).json({
-      error: "Could not create purchase."
+      error: "Could not save purchase.",
+      details: error.message
     });
   }
 
-  const rows = safeItems.map(item => ({
-    ...item,
-    purchase_id: purchase.id
-  }));
+  await audit(req, "purchase_created", "purchase", data.id);
 
-  const { error: itemError } = await db
-    .from("purchase_items")
-    .insert(rows);
-
-  if (itemError) {
-    await db.from("purchases").delete().eq("id", purchase.id);
-
-    return res.status(500).json({
-      error: "Could not save purchase items."
-    });
-  }
-
-  await audit("purchase_created", "purchase", purchase.id);
-
-  res.json({
-    purchase,
-    items: rows
-  });
+  res.json(data);
 });
 
-
-// Receive a purchase and add stock.
-// Call this only after checking the supplier delivery.
 app.post("/api/purchases/:id/receive", needDb, auth, admin, async (req, res) => {
-  const { data: purchase, error } = await db
+  const { data: purchase, error: purchaseError } = await db
     .from("purchases")
     .select("*")
     .eq("id", req.params.id)
     .single();
 
-  if (error || !purchase) {
+  if (purchaseError || !purchase) {
     return res.status(404).json({
       error: "Purchase not found."
     });
@@ -984,89 +1068,66 @@ app.post("/api/purchases/:id/receive", needDb, auth, admin, async (req, res) => 
 
   if (purchase.status !== "draft") {
     return res.status(400).json({
-      error: "Purchase is already handled."
+      error: "Purchase already received or not eligible."
     });
   }
 
-  const { data: items, error: itemsError } = await db
-    .from("purchase_items")
-    .select("*")
-    .eq("purchase_id", purchase.id);
+  const items = Array.isArray(purchase.items) ? purchase.items : [];
 
-  if (itemsError || !items || !items.length) {
-    return res.status(500).json({
-      error: "Purchase items not found."
-    });
-  }
-
-  // Record stock movements first. If a later update fails,
-  // check the purchase and stock records before retrying.
   for (const item of items) {
     const { data: product, error: productError } = await db
       .from("products")
-      .select("id,stock_quantity,cost_price")
+      .select("stock_quantity,cost_price")
       .eq("id", item.product_id)
       .single();
 
     if (productError || !product) {
-      return res.status(500).json({
-        error: "Could not find a purchase product."
+      return res.status(400).json({
+        error: "A purchase product could not be found."
       });
     }
 
-    const { error: movementError } = await db
-      .from("inventory_movements")
-      .insert({
-        product_id: product.id,
-        movement_type: "purchase",
-        quantity: item.quantity,
-        unit_cost: item.unit_cost,
-        reference_type: "purchase",
-        reference_id: purchase.id,
-        notes: "Stock received from purchase"
-      });
-
-    if (movementError) {
-      return res.status(500).json({
-        error: "Stock movement could not be recorded."
-      });
-    }
-
-    const { error: stockError } = await db
+    const { error: updateError } = await db
       .from("products")
       .update({
-        stock_quantity:
-          Number(product.stock_quantity || 0) + Number(item.quantity),
+        stock_quantity: Number(product.stock_quantity || 0) + Number(item.quantity),
         cost_price: Number(item.unit_cost)
       })
-      .eq("id", product.id);
+      .eq("id", item.product_id);
 
-    if (stockError) {
+    if (updateError) {
       return res.status(500).json({
-        error: "Stock update failed. Please check inventory before retrying."
+        error: "Could not update stock."
       });
     }
+
+    await db.from("inventory_movements").insert({
+      product_id: item.product_id,
+      movement_type: "purchase_in",
+      quantity: Number(item.quantity),
+      notes: "Purchase received"
+    });
   }
 
-  const { data: updated, error: updateError } = await db
+  const { data, error } = await db
     .from("purchases")
     .update({
       status: "received",
-      updated_at: new Date().toISOString()
+      received_at: new Date().toISOString()
     })
     .eq("id", purchase.id)
     .select()
     .single();
 
-  if (updateError) {
+  if (error) {
     return res.status(500).json({
-      error: "Stock updated but purchase status update failed. Contact admin."
+      error: "Stock received but purchase status could not be updated."
     });
   }
 
-  await audit("purchase_received", "purchase", purchase.id);
+  await audit(req, "purchase_received", "purchase", data.id);
 
-  res.json(updated);
+  res.json(data);
 });
 
 
@@ -1077,7 +1138,7 @@ app.post("/api/purchases/:id/receive", needDb, auth, admin, async (req, res) => 
 app.get("/api/inventory", needDb, auth, admin, async (req, res) => {
   const { data, error } = await db
     .from("products")
-    .select("id,name,sku,category,unit,stock_quantity,low_stock_threshold,cost_price,price,active")
+    .select("id,name,sku,stock_quantity,low_stock_threshold")
     .eq("active", true)
     .order("name");
 
@@ -1090,120 +1151,12 @@ app.get("/api/inventory", needDb, auth, admin, async (req, res) => {
   res.json(data);
 });
 
-app.get("/api/inventory/movements", needDb, auth, admin, async (req, res) => {
-  const { data, error } = await db
-    .from("inventory_movements")
-    .select("*,products(name,sku)")
-    .order("created_at", { ascending: false })
-    .limit(500);
-
-  if (error) {
-    return res.status(500).json({
-      error: "Could not load stock history."
-    });
-  }
-
-  res.json(data);
-});
-
-app.post("/api/inventory/adjust", needDb, auth, admin, async (req, res) => {
-  const {
-    product_id,
-    movement_type,
-    quantity,
-    notes = ""
-  } = req.body;
-
-  const allowed = [
-    "adjustment_in",
-    "adjustment_out",
-    "damage",
-    "opening",
-    "return_in",
-    "return_out"
-  ];
-
-  const qty = Number(quantity);
-
-  if (
-    !product_id ||
-    !allowed.includes(movement_type) ||
-    !validAmount(qty)
-  ) {
-    return res.status(400).json({
-      error: "Invalid stock adjustment."
-    });
-  }
-
-  const { data: product, error } = await db
-    .from("products")
-    .select("id,stock_quantity")
-    .eq("id", product_id)
-    .single();
-
-  if (error || !product) {
-    return res.status(404).json({
-      error: "Product not found."
-    });
-  }
-
-  const incoming = [
-    "adjustment_in",
-    "opening",
-    "return_in"
-  ].includes(movement_type);
-
-  const newStock = Number(product.stock_quantity || 0) +
-    (incoming ? qty : -qty);
-
-  if (newStock < 0) {
-    return res.status(400).json({
-      error: "Stock cannot become negative."
-    });
-  }
-
-  const { error: movementError } = await db
-    .from("inventory_movements")
-    .insert({
-      product_id,
-      movement_type,
-      quantity: qty,
-      notes
-    });
-
-  if (movementError) {
-    return res.status(500).json({
-      error: "Could not save stock movement."
-    });
-  }
-
-  const { data: updated, error: updateError } = await db
-    .from("products")
-    .update({ stock_quantity: newStock })
-    .eq("id", product_id)
-    .select()
-    .single();
-
-  if (updateError) {
-    return res.status(500).json({
-      error: "Could not update stock."
-    });
-  }
-
-  await audit("stock_adjusted", "product", product_id, {
-    movement_type,
-    quantity: qty
-  });
-
-  res.json(updated);
-});
-
 app.get("/api/inventory/low-stock", needDb, auth, admin, async (req, res) => {
   const { data, error } = await db
     .from("products")
     .select("id,name,sku,stock_quantity,low_stock_threshold")
     .eq("active", true)
-    .order("name");
+    .order("stock_quantity");
 
   if (error) {
     return res.status(500).json({
@@ -1211,14 +1164,110 @@ app.get("/api/inventory/low-stock", needDb, auth, admin, async (req, res) => {
     });
   }
 
-  res.json(
-    data.filter(p =>
-      Number(p.stock_quantity) <= Number(p.low_stock_threshold)
-    )
-  );
+  res.json((data || []).filter(p =>
+    Number(p.stock_quantity || 0) <= Number(p.low_stock_threshold || 0)
+  ));
+});
+
+app.get("/api/inventory/movements", needDb, auth, admin, async (req, res) => {
+  const { data, error } = await db
+    .from("inventory_movements")
+    .select("*,products(name)")
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (error) {
+    return res.status(500).json({
+      error: "Could not load inventory movements."
+    });
+  }
+
+  res.json(data);
+});
+
+app.post("/api/inventory/adjust", needDb, auth, admin, async (req, res) => {
+  const { product_id, movement_type, quantity, notes = "" } = req.body;
+
+  const allowedTypes = [
+    "adjustment_in",
+    "adjustment_out",
+    "damage",
+    "return_in",
+    "return_out"
+  ];
+
+  if (
+    !product_id ||
+    !allowedTypes.includes(movement_type) ||
+    !Number.isInteger(Number(quantity)) ||
+    Number(quantity) < 1
+  ) {
+    return res.status(400).json({
+      error: "Invalid stock adjustment."
+    });
+  }
+
+  const { data: product, error: productError } = await db
+    .from("products")
+    .select("id,stock_quantity")
+    .eq("id", product_id)
+    .single();
+
+  if (productError || !product) {
+    return res.status(404).json({
+      error: "Product not found."
+    });
+  }
+
+  const isIn = ["adjustment_in", "return_in"].includes(movement_type);
+  const nextStock = Number(product.stock_quantity || 0) +
+    (isIn ? Number(quantity) : -Number(quantity));
+
+  if (nextStock < 0) {
+    return res.status(400).json({
+      error: "Stock cannot become negative."
+    });
+  }
+
+  const { error: updateError } = await db
+    .from("products")
+    .update({ stock_quantity: nextStock })
+    .eq("id", product_id);
+
+  if (updateError) {
+    return res.status(500).json({
+      error: "Could not update stock."
+    });
+  }
+
+  const { data, error } = await db
+    .from("inventory_movements")
+    .insert({
+      product_id,
+      movement_type,
+      quantity: Number(quantity),
+      notes: String(notes)
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return res.status(500).json({
+      error: "Stock changed but movement could not be recorded."
+    });
+  }
+
+  await audit(req, "inventory_adjusted", "product", product_id, {
+    movement_type,
+    quantity: Number(quantity)
+  });
+
+  res.json(data);
 });
 
 
+// ==========================================
+// EXPENSES
 // ==========================================
 // EXPENSES
 // ==========================================
@@ -1276,7 +1325,7 @@ app.post("/api/expenses", needDb, auth, admin, async (req, res) => {
     });
   }
 
-  await audit("expense_created", "expense", data.id);
+  await audit(req, "expense_created", "expense", data.id);
 
   res.json(data);
 });
@@ -1352,10 +1401,25 @@ app.post("/api/customer-payments", needDb, auth, admin, async (req, res) => {
     });
   }
 
-  await db.from("ledger_entries").insert({
+  const { error: ledgerError } = await db.from("ledger_entries").insert({
     customer_id,
     amount: -Number(amount),
     note: "Payment received: " + payment_method
+  });
+
+  if (ledgerError) {
+    return res.status(500).json({ error: "Payment saved but ledger update failed." });
+  }
+
+  const { error: inboxError } = await db.from("inbox_messages").insert({
+    message_type: "personal",
+    recipient_customer_id: customer_id,
+    body: `Payment received: ₹${Number(amount).toFixed(2)}. Your account ledger has been updated.`
+  });
+  if (inboxError) console.error("PAYMENT INBOX ERROR:", inboxError.message);
+
+  await audit(req, "customer_payment_created", "customer_payment", data.id, {
+    customer_id, amount: Number(amount), payment_method
   });
 
   res.json(data);
@@ -1434,6 +1498,10 @@ app.post("/api/supplier-payments", needDb, auth, admin, async (req, res) => {
         .eq("id", purchase_id);
     }
   }
+
+  await audit(req, "supplier_payment_created", "supplier_payment", data.id, {
+    supplier_id, amount: Number(amount), payment_method
+  });
 
   res.json(data);
 });
