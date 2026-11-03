@@ -233,7 +233,17 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
       .eq("active", true);
 
     if (adminError) {
-      return res.status(500).json({ error: "Could not check admin codes." });
+      console.error("ADMIN CODE LOGIN QUERY ERROR:", {
+        message: adminError.message,
+        code: adminError.code,
+        details: adminError.details,
+        hint: adminError.hint
+      });
+      return res.status(500).json({
+        error: "Could not check admin codes.",
+        details: adminError.message,
+        code: adminError.code || null
+      });
     }
 
     for (const a of adminCodes || []) {
