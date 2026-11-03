@@ -6,35 +6,25 @@
 <title>JALIYAAN SALES</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f3f5f9;color:#202b3c}
-header{background:#14243b;color:white;padding:22px;text-align:center}
-header h1{margin:0;font-size:25px;letter-spacing:1px}
-header p{margin:7px 0 0;color:#cbd5e1}
-main{max-width:1000px;margin:25px auto;padding:15px}
-.card{background:white;padding:20px;border-radius:13px;margin-bottom:18px;box-shadow:0 3px 15px #0000000d}
-input,button,select,textarea{width:100%;padding:13px;margin:7px 0;border-radius:7px;border:1px solid #d5dce5;font-size:15px}
-textarea{min-height:75px;font-family:Arial;resize:vertical}
+body{margin:0;font-family:Arial;background:#f2f4f8;color:#202b3c}
+header{background:#14243b;color:white;text-align:center;padding:20px}
+main{max-width:1100px;margin:20px auto;padding:10px}
+.card{background:white;padding:16px;border-radius:12px;margin:12px 0;box-shadow:0 2px 12px #0001}
+input,select,textarea,button{width:100%;padding:12px;margin:6px 0;border:1px solid #ccd3dd;border-radius:7px;font-size:15px}
 button{background:#14243b;color:white;border:0;font-weight:bold;cursor:pointer}
-button:hover{opacity:.9}
-.danger{background:#b42318}
-.success{background:#087443}
-.secondary{background:#64748b}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
-.item{border:1px solid #e2e8f0;border-radius:10px;padding:15px}
-.price{font-weight:bold;color:#087443;font-size:19px}
+.red{background:#b42318}
+.green{background:#087443}
 .hidden{display:none!important}
-h2{margin-top:0}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-small{color:#64748b}
-table{width:100%;border-collapse:collapse;min-width:450px}
-.tableWrap{overflow-x:auto}
-td,th{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb}
-.message{padding:10px;border-radius:7px;margin:10px 0;background:#f1f5f9;overflow-wrap:anywhere}
-@media(max-width:600px){
- main{padding:10px;margin:10px auto}
- .card{padding:15px}
- header{padding:18px}
-}
+.tabs{display:flex;gap:6px;overflow:auto}
+.tabs button{width:auto;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.msg{background:#eef2f7;padding:10px;margin:8px 0;border-radius:6px;white-space:pre-wrap}
+table{border-collapse:collapse;width:100%;min-width:450px}
+td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}
+.table{overflow:auto}
+.item{border:1px solid #ddd;border-radius:8px;padding:12px;margin:8px 0}
+.price{color:#087443;font-weight:bold}
+@media(max-width:600px){main{padding:6px}.card{padding:12px}}
 </style>
 </head>
 <body>
@@ -46,771 +36,807 @@ td,th{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb}
 
 <main>
 
-<section id="loginSection" class="card">
+<section id="login" class="card">
 <h2>Welcome</h2>
-<p>Enter your Admin Password or Customer Code.</p>
-<input id="loginCode" type="password" placeholder="Enter Login Code">
+<p>Apna access code daalein.</p>
+<input id="code" type="password" placeholder="Admin / Customer Code">
+<label>
+<input id="age" type="checkbox" style="width:auto">
+I confirm I meet the applicable legal age requirement.
+</label>
 <button onclick="login()">LOGIN</button>
-<div id="loginMessage" class="message"></div>
+<div id="loginMsg" class="msg"></div>
 </section>
 
-<section id="dashboard" class="hidden">
-
-<div class="card row">
-<div>
-<h2 id="welcome">Dashboard</h2>
-<small id="roleText"></small>
-</div>
-<button class="success" style="width:auto" onclick="openInbox()">📩 INBOX</button>
-<button class="danger" style="width:auto" onclick="logout()">LOGOUT</button>
-</div>
-
-<div id="inboxSection" class="card hidden">
-  <div class="row">
-    <h2>📩 My Inbox</h2>
-    <button style="width:auto" onclick="loadInbox()">REFRESH</button>
-  </div>
-
-  <div id="adminInboxForm" class="hidden">
-    <h3>Send New Message</h3>
-
-    <select id="inboxType" onchange="togglePersonalMessage()">
-      <option value="group">Group Message - All Customers</option>
-      <option value="personal">Personal Message - One Customer</option>
-    </select>
-
-    <div id="personalCodeBox" class="hidden">
-      <input id="inboxCustomerCode" placeholder="Enter Customer Code">
-    </div>
-
-    <textarea id="inboxBody" maxlength="5000"
-      placeholder="Write your message here..."></textarea>
-
-    <button onclick="sendInboxMessage()">SEND MESSAGE</button>
-    <div id="inboxSendMessage" class="message"></div>
-  </div>
-
-  <hr>
-  <h3>All Messages</h3>
-  <div id="inboxMessages">Loading messages...</div>
-</div>
+<section id="app" class="hidden">
 
 <div class="card">
+<h2 id="welcome">Dashboard</h2>
+<button class="red" onclick="logout()">LOGOUT</button>
+</div>
+
+<nav id="adminNav" class="tabs hidden">
+<button onclick="tab('overview')">Overview</button>
+<button onclick="tab('products')">Products</button>
+<button onclick="tab('inventory')">Inventory</button>
+<button onclick="tab('suppliers')">Suppliers</button>
+<button onclick="tab('purchases')">Purchases</button>
+<button onclick="tab('expenses')">Expenses</button>
+<button onclick="tab('payments')">Payments</button>
+<button onclick="tab('customers')">Customers</button>
+<button onclick="tab('orders')">Orders</button>
+<button onclick="tab('ledger')">Ledger</button>
+<button onclick="tab('inbox')">Inbox</button>
+<button onclick="tab('settings')">Settings</button>
+</nav>
+
+<nav id="customerNav" class="tabs hidden">
+<button onclick="tab('products')">Products</button>
+<button onclick="tab('cart')">My Cart</button>
+<button onclick="tab('orders')">My Orders</button>
+<button onclick="tab('ledger')">My Ledger</button>
+<button onclick="tab('inbox')">Inbox</button>
+</nav>
+
+<div id="overview" class="card panel hidden">
+<h2>Business Overview</h2>
+<div id="stats" class="grid"></div>
+<button onclick="dashboard()">Refresh</button>
+</div>
+
+<div id="products" class="card panel">
 <h2>Products</h2>
 
-<div id="adminProductForm" class="hidden">
-<h3>Add New Product</h3>
-<input id="productName" placeholder="Product name">
-<input id="productPrice" type="number" min="0" step="0.01" placeholder="Price (₹)">
-<textarea id="productDescription" placeholder="Description"></textarea>
+<div id="productForm" class="hidden">
+<div class="grid">
+<input id="pname" placeholder="Product name">
+<input id="pprice" type="number" placeholder="Selling price ₹">
+<input id="psku" placeholder="SKU">
+<input id="pcat" value="Tobacco" placeholder="Category">
+<input id="pbrand" placeholder="Brand">
+<input id="punit" value="piece" placeholder="Unit">
+<input id="pcost" type="number" placeholder="Cost price">
+<input id="pstock" type="number" placeholder="Opening stock">
+<input id="plow" type="number" placeholder="Low stock alert">
+<input id="ppack" placeholder="Pack size">
+<input id="pbar" placeholder="Barcode">
+</div>
+<textarea id="pdesc" placeholder="Description"></textarea>
 <button onclick="addProduct()">ADD PRODUCT</button>
-<div id="productMessage" class="message"></div>
-<hr>
+<div id="pmsg" class="msg"></div>
 </div>
 
-<div id="products" class="grid">Loading products...</div>
+<div id="productList"></div>
 </div>
 
-<div id="cartSection" class="card">
+<div id="cart" class="card panel hidden">
 <h2>My Order</h2>
-<div id="cart">Your cart is empty.</div>
-<h3 id="total">Total: ₹0</h3>
+<div id="cartList">Cart is empty.</div>
+<h3 id="cartTotal">Total ₹0</h3>
 <button onclick="placeOrder()">PLACE ORDER</button>
-<div id="orderMessage" class="message"></div>
+<div id="cartMsg" class="msg"></div>
 </div>
 
-<div id="adminSection" class="hidden">
-
-<div class="card">
-<h2>Add Customer</h2>
-<input id="customerName" placeholder="Customer name">
-<input id="customerCode" type="text" minlength="6" maxlength="12" placeholder="Customer code (6-12 characters)">
-<button onclick="addCustomer()">CREATE CUSTOMER</button>
-<div id="customerMessage" class="message"></div>
-<small>Customer ko uska code securely de dein. Code dobara list mein nahi dikhaya jayega.</small>
-</div>
-
-<div class="card">
-<h2>Customer List</h2>
-<div id="customers">Loading customers...</div>
-</div>
-
-<div class="card">
-<h2>Add Account Ledger Entry</h2>
-<select id="ledgerCustomer">
-<option value="">Select customer</option>
+<div id="inventory" class="card panel hidden">
+<h2>Inventory</h2>
+<div class="grid">
+<select id="adjProduct"></select>
+<select id="adjType">
+<option value="adjustment_in">Stock In</option>
+<option value="adjustment_out">Stock Out</option>
+<option value="damage">Damage</option>
+<option value="return_in">Return In</option>
+<option value="return_out">Return Out</option>
 </select>
-<input id="ledgerAmount" type="number" step="0.01" placeholder="Amount (₹)">
-<textarea id="ledgerNote" placeholder="Description / Note"></textarea>
-<button onclick="addLedger()">SAVE LEDGER ENTRY</button>
-<div id="ledgerMessage" class="message"></div>
-<small>Positive amount = credit, negative amount = debit.</small>
+<input id="adjQty" type="number" placeholder="Quantity">
+<input id="adjNote" placeholder="Reason">
+</div>
+<button onclick="adjust()">UPDATE STOCK</button>
+<div id="invMsg" class="msg"></div>
+<h3>Current Stock</h3>
+<div id="stockList"></div>
+<h3>Low Stock</h3>
+<div id="lowList"></div>
+<h3>Movement History</h3>
+<div id="moveList"></div>
 </div>
 
+<div id="suppliers" class="card panel hidden">
+<h2>Suppliers</h2>
+<div class="grid">
+<input id="sname" placeholder="Supplier name">
+<input id="scontact" placeholder="Contact person">
+<input id="sphone" placeholder="Phone">
+<input id="semail" placeholder="Email">
+<input id="sgst" placeholder="GSTIN">
+</div>
+<textarea id="saddress" placeholder="Address"></textarea>
+<button onclick="addSupplier()">ADD SUPPLIER</button>
+<div id="smsg" class="msg"></div>
+<div id="supplierList"></div>
 </div>
 
-<div class="card">
+<div id="purchases" class="card panel hidden">
+<h2>Purchases</h2>
+<select id="purchaseSupplier"></select>
+<select id="purchaseProduct"></select>
+<div class="grid">
+<input id="purchaseQty" type="number" placeholder="Quantity">
+<input id="purchaseCost" type="number" placeholder="Unit cost">
+</div>
+<button onclick="addPurchaseItem()">ADD ITEM</button>
+<div id="purchaseItems" class="msg">No items.</div>
+<input id="invoice" placeholder="Invoice number">
+<div class="grid">
+<input id="tax" type="number" value="0" placeholder="Tax">
+<input id="charges" type="number" value="0" placeholder="Other charges">
+</div>
+<button onclick="savePurchase()">SAVE PURCHASE DRAFT</button>
+<div id="purchaseMsg" class="msg"></div>
+<h3>Purchase Records</h3>
+<div id="purchaseList"></div>
+</div>
+
+<div id="expenses" class="card panel hidden">
+<h2>Expenses</h2>
+<div class="grid">
+<input id="ecat" placeholder="Category">
+<input id="eamount" type="number" placeholder="Amount">
+<input id="edate" type="date">
+<select id="emethod">
+<option>cash</option>
+<option>upi</option>
+<option>bank</option>
+<option>card</option>
+</select>
+</div>
+<input id="edesc" placeholder="Description">
+<button onclick="addExpense()">SAVE EXPENSE</button>
+<div id="emsg" class="msg"></div>
+<div id="expenseList"></div>
+</div>
+
+<div id="payments" class="card panel hidden">
+<h2>Customer Payment</h2>
+<select id="payCustomer"></select>
+<div class="grid">
+<input id="cpAmount" type="number" placeholder="Amount">
+<select id="cpMethod">
+<option>cash</option>
+<option>upi</option>
+<option>bank</option>
+<option>card</option>
+</select>
+</div>
+<input id="cpRef" placeholder="Reference">
+<button onclick="customerPayment()">SAVE PAYMENT</button>
+<div id="cpMsg" class="msg"></div>
+
+<hr>
+
+<h2>Supplier Payment</h2>
+<select id="paySupplier"></select>
+<div class="grid">
+<input id="spAmount" type="number" placeholder="Amount">
+<select id="spMethod">
+<option>cash</option>
+<option>upi</option>
+<option>bank</option>
+<option>card</option>
+</select>
+</div>
+<input id="spRef" placeholder="Reference">
+<button onclick="supplierPayment()">SAVE PAYMENT</button>
+<div id="spMsg" class="msg"></div>
+<div id="cpList"></div>
+<div id="spList"></div>
+</div>
+
+<div id="customers" class="card panel hidden">
+<h2>Create Customer</h2>
+<input id="cname" placeholder="Customer name">
+<input id="ccode" placeholder="Customer code">
+<button onclick="addCustomer()">CREATE CUSTOMER</button>
+<div id="cmsg" class="msg"></div>
+<div id="customerList"></div>
+</div>
+
+<div id="orders" class="card panel hidden">
 <h2>Orders</h2>
-<div id="orders">Loading orders...</div>
+<div id="orderList"></div>
 </div>
 
-<div class="card">
+<div id="ledger" class="card panel hidden">
 <h2>Account Ledger</h2>
-<div id="ledger">Loading ledger...</div>
+<div id="ledgerList"></div>
+<div id="ledgerForm" class="hidden">
+<select id="ledgerCustomer"></select>
+<input id="lamount" type="number" placeholder="Amount">
+<input id="lnote" placeholder="Note">
+<button onclick="addLedger()">SAVE LEDGER ENTRY</button>
+<div id="lmsg" class="msg"></div>
+</div>
+</div>
+
+<div id="inbox" class="card panel hidden">
+<h2>Inbox</h2>
+<div id="messageForm" class="hidden">
+<select id="mtype">
+<option value="group">All customers</option>
+<option value="personal">One customer</option>
+</select>
+<input id="mcode" placeholder="Customer code">
+<textarea id="mbody" placeholder="Message"></textarea>
+<button onclick="sendMessage()">SEND MESSAGE</button>
+<div id="mmsg" class="msg"></div>
+</div>
+<button onclick="loadInbox()">REFRESH</button>
+<div id="messages"></div>
+</div>
+
+<div id="settings" class="card panel hidden">
+<h2>Business Settings</h2>
+<input id="setKey" placeholder="Setting key">
+<input id="setValue" placeholder="Setting value">
+<button onclick="saveSetting()">SAVE SETTING</button>
+<div id="setMsg" class="msg"></div>
+<div id="settingList"></div>
 </div>
 
 </section>
 </main>
 
 <script>
-let currentUser=null;
-let productsList=[];
-let cart=[];
-let customerList=[];
+let me=null,products=[],customers=[],suppliers=[],cartItems=[],purchaseItems=[];
 
-async function api(url,options={}){
-  const response=await fetch(url,{
-    ...options,
-    credentials:"same-origin",
-    headers:{
-      "Content-Type":"application/json",
-      ...(options.headers||{})
-    }
-  });
+const $=id=>document.getElementById(id);
+const isAdmin=()=>me?.role==="admin";
 
-  let data={};
-  try{data=await response.json()}catch(e){}
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({
+"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
 
-  if(!response.ok){
-    throw new Error(data.details||data.error||"Request failed");
-  }
-  return data;
+const rows=d=>Array.isArray(d)?d:[];
+
+async function api(url,opt={}){
+let r=await fetch(url,{
+...opt,
+credentials:"same-origin",
+headers:{"Content-Type":"application/json",...(opt.headers||{})}
+});
+let d={};
+try{d=await r.json()}catch{}
+if(!r.ok)throw Error(d.details||d.error||"Request failed");
+return d;
 }
 
-function safe(value){
-  return String(value??"").replace(/[&<>"']/g,c=>({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
-  }[c]));
-}
-
-function list(data){
-  if(Array.isArray(data))return data;
-  if(Array.isArray(data.data))return data.data;
-  if(Array.isArray(data.products))return data.products;
-  if(Array.isArray(data.orders))return data.orders;
-  if(Array.isArray(data.customers))return data.customers;
-  if(Array.isArray(data.ledger))return data.ledger;
-  return [];
-}
-
-function isAdmin(){
-  return currentUser?.role==="admin";
+function table(data,cols){
+return data.length?
+`<div class="table"><table>
+<tr>${cols.map(c=>`<th>${c[0]}</th>`).join("")}</tr>
+${data.map(x=>`<tr>${cols.map(c=>`<td>${c[1](x)}</td>`).join("")}</tr>`).join("")}
+</table></div>`:"<p>No records found.</p>";
 }
 
 async function login(){
-  const code=document.getElementById("loginCode").value.trim();
-  const msg=document.getElementById("loginMessage");
-
-  if(!code){
-    msg.textContent="Please enter your code.";
-    return;
-  }
-
-  msg.textContent="Checking login...";
-
-  try{
-    const data=await api("/api/login",{
-      method:"POST",
-      body:JSON.stringify({code})
-    });
-
-    currentUser=data.user||data.customer||data;
-    await showDashboard();
-
-  }catch(error){
-    msg.textContent=error.message;
-  }
+if(!$("age").checked){
+$("loginMsg").textContent="Please confirm the applicable legal age requirement.";
+return;
 }
-
-async function showDashboard(){
-  document.getElementById("loginSection").classList.add("hidden");
-  document.getElementById("dashboard").classList.remove("hidden");
-
-  const admin=isAdmin();
-
-  document.getElementById("adminProductForm").classList.toggle("hidden",!admin);
-  document.getElementById("adminSection").classList.toggle("hidden",!admin);
-  document.getElementById("cartSection").classList.toggle("hidden",admin);
-
-  document.getElementById("welcome").textContent=
-    admin?"Admin Dashboard":"Customer Dashboard";
-
-  document.getElementById("roleText").textContent=
-    admin?"Administrator":"Customer";
-
-  await loadProducts();
-  await loadOrders();
-  await loadLedger();
-
-  if(admin){
-    await loadCustomers();
-  }
+try{
+me=await api("/api/login",{
+method:"POST",
+body:JSON.stringify({code:$("code").value.trim()})
+});
+$("login").classList.add("hidden");
+$("app").classList.remove("hidden");
+$("welcome").textContent=(me.displayName||me.role)+" — "+me.role;
+$("adminNav").classList.toggle("hidden",!isAdmin());
+$("customerNav").classList.toggle("hidden",isAdmin());
+$("productForm").classList.toggle("hidden",!isAdmin());
+$("ledgerForm").classList.toggle("hidden",!isAdmin());
+$("messageForm").classList.toggle("hidden",!isAdmin());
+go(isAdmin()?"overview":"products");
+}catch(e){$("loginMsg").textContent=e.message}
 }
 
 async function logout(){
-  try{
-    await api("/api/logout",{method:"POST"});
-  }catch(e){}
-
-  currentUser=null;
-  productsList=[];
-  cart=[];
-
-  document.getElementById("dashboard").classList.add("hidden");
-  document.getElementById("loginSection").classList.remove("hidden");
-  document.getElementById("loginCode").value="";
-  document.getElementById("loginMessage").textContent="";
+try{await api("/api/logout",{method:"POST"})}catch{}
+me=null;cartItems=[];
+$("app").classList.add("hidden");
+$("login").classList.remove("hidden");
+$("code").value="";
+$("age").checked=false;
 }
 
-async function addProduct(){
-  const name=document.getElementById("productName").value.trim();
-  const price=Number(document.getElementById("productPrice").value);
-  const description=document.getElementById("productDescription").value.trim();
-  const msg=document.getElementById("productMessage");
+function go(id){
+document.querySelectorAll(".panel").forEach(x=>x.classList.add("hidden"));
+$(id).classList.remove("hidden");
+({
+overview:dashboard,
+products:loadProducts,
+inventory:loadInventory,
+suppliers:loadSuppliers,
+purchases:loadPurchases,
+expenses:loadExpenses,
+payments:loadPayments,
+customers:loadCustomers,
+orders:loadOrders,
+ledger:loadLedger,
+inbox:loadInbox,
+settings:loadSettings
+})[id]?.();
+}
 
-  if(!name||!Number.isFinite(price)||price<0){
-    msg.textContent="Enter valid product name and price.";
-    return;
-  }
+function tab(id){go(id)}
 
-  msg.textContent="Saving product...";
-
-  try{
-    await api("/api/products",{
-      method:"POST",
-      body:JSON.stringify({name,price,description})
-    });
-
-    msg.textContent="Product added successfully!";
-
-    document.getElementById("productName").value="";
-    document.getElementById("productPrice").value="";
-    document.getElementById("productDescription").value="";
-
-    await loadProducts();
-
-  }catch(e){
-    msg.textContent=e.message;
-  }
+async function dashboard(){
+try{
+let d=await api("/api/dashboard");
+let names={
+totalProducts:"Products",
+totalCustomers:"Customers",
+totalSuppliers:"Suppliers",
+totalOrders:"Orders",
+pendingOrders:"Pending",
+acceptedOrders:"Accepted",
+lowStockProducts:"Low stock",
+totalOrderValue:"Order value ₹",
+totalExpenses:"Expenses ₹"
+};
+$("stats").innerHTML=Object.entries(names).map(([k,v])=>
+`<div class="msg">${v}<h2>${esc(d[k]||0)}</h2></div>`).join("");
+}catch(e){$("stats").textContent=e.message}
 }
 
 async function loadProducts(){
-  const box=document.getElementById("products");
-  box.textContent="Loading products...";
-
-  try{
-    const data=await api("/api/products");
-    productsList=list(data);
-
-    if(!productsList.length){
-      box.textContent=isAdmin()
-        ?"No products yet. Add your first product above."
-        :"No products available.";
-      return;
-    }
-
-    box.innerHTML=productsList.map((p,i)=>`
-      <div class="item">
-        <h3>${safe(p.name)}</h3>
-        <p>${safe(p.description||"")}</p>
-        <p class="price">₹${safe(p.price)}</p>
-        ${isAdmin()?"":`
-          <button onclick="addToCart(${i})">ADD TO ORDER</button>
-        `}
-      </div>
-    `).join("");
-
-  }catch(e){
-    box.textContent=e.message;
-  }
+try{
+products=rows(await api("/api/products"));
+$("productList").innerHTML=products.map((p,i)=>
+`<div class="item">
+<b>${esc(p.name)}</b>
+<p>${esc(p.description||"")}</p>
+<span class="price">₹${esc(p.price)}</span>
+${isAdmin()?`<p>SKU ${esc(p.sku||"-")} | Stock ${esc(p.stock_quantity??"-")}</p>
+<button onclick="editProduct(${i})">EDIT PRICE</button>
+<button class="red" onclick="deactivate('${esc(p.id)}')">DEACTIVATE</button>`
+:`<button onclick="addCart(${i})">ADD TO ORDER</button>`}
+</div>`).join("")||"No products yet";
+$("adjProduct").innerHTML=products.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+$("purchaseProduct").innerHTML=products.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+}catch(e){$("productList").textContent=e.message}
 }
 
-function addToCart(index){
-  const p=productsList[index];
-  if(!p)return;
-
-  const existing=cart.find(x=>x.id===p.id);
-
-  if(existing){
-    existing.quantity++;
-  }else{
-    cart.push({
-      id:p.id,
-      name:p.name,
-      price:Number(p.price),
-      quantity:1
-    });
-  }
-
-  showCart();
+async function addProduct(){
+try{
+await api("/api/products",{
+method:"POST",
+body:JSON.stringify({
+name:$("pname").value,
+price:+$("pprice").value,
+sku:$("psku").value||null,
+category:$("pcat").value,
+brand:$("pbrand").value,
+unit:$("punit").value,
+cost_price:+$("pcost").value||0,
+stock_quantity:+$("pstock").value||0,
+low_stock_threshold:+$("plow").value||0,
+pack_size:$("ppack").value,
+barcode:$("pbar").value,
+description:$("pdesc").value
+})
+});
+$("pmsg").textContent="Product saved";
+loadProducts();
+}catch(e){$("pmsg").textContent=e.message}
 }
 
-function showCart(){
-  const box=document.getElementById("cart");
-
-  if(!cart.length){
-    box.textContent="Your cart is empty.";
-  }else{
-    box.innerHTML=cart.map((p,i)=>`
-      <div class="row">
-        <span>${safe(p.name)} × ${p.quantity}</span>
-        <span>₹${p.price*p.quantity}</span>
-        <button class="danger" style="width:auto" onclick="removeItem(${i})">Remove</button>
-      </div>
-    `).join("");
-  }
-
-  const total=cart.reduce((sum,p)=>sum+p.price*p.quantity,0);
-  document.getElementById("total").textContent="Total: ₹"+total;
+async function editProduct(i){
+let p=products[i];
+let price=prompt("New selling price",p.price);
+if(price===null)return;
+try{
+await api("/api/products/"+p.id,{
+method:"PATCH",
+body:JSON.stringify({price:Number(price)})
+});
+loadProducts();
+}catch(e){alert(e.message)}
 }
 
-function removeItem(index){
-  cart.splice(index,1);
-  showCart();
+async function deactivate(id){
+if(!confirm("Deactivate product?"))return;
+try{await api("/api/products/"+id,{method:"DELETE"});loadProducts()}
+catch(e){alert(e.message)}
 }
 
-// ============== INBOX SYSTEM ==============
-
-function openInbox(){
-  document.getElementById("inboxSection").classList.remove("hidden");
-  document.getElementById("inboxSection").scrollIntoView({behavior:"smooth"});
-  document.getElementById("adminInboxForm").classList.toggle("hidden",!isAdmin());
-  loadInbox();
+function addCart(i){
+let p=products[i],x=cartItems.find(x=>x.id===p.id);
+if(x)x.quantity++;
+else cartItems.push({id:p.id,name:p.name,price:+p.price,quantity:1});
+renderCart();
 }
 
-function togglePersonalMessage(){
-  const personal=document.getElementById("inboxType").value==="personal";
-  document.getElementById("personalCodeBox").classList.toggle("hidden",!personal);
+function renderCart(){
+$("cartList").innerHTML=cartItems.map((x,i)=>
+`<p>${esc(x.name)} × ${x.quantity} — ₹${x.price*x.quantity}
+<button class="red" onclick="cartItems.splice(${i},1);renderCart()">Remove</button></p>`
+).join("")||"Cart is empty";
+$("cartTotal").textContent="Total ₹"+cartItems.reduce((s,x)=>s+x.price*x.quantity,0);
 }
-
-async function sendInboxMessage(){
-  const type=document.getElementById("inboxType").value;
-  const body=document.getElementById("inboxBody").value.trim();
-  const code=document.getElementById("inboxCustomerCode").value.trim();
-  const msg=document.getElementById("inboxSendMessage");
-
-  if(!body){
-    msg.textContent="Please write a message.";
-    return;
-  }
-
-  if(type==="personal"&&!code){
-    msg.textContent="Please enter Customer Code.";
-    return;
-  }
-
-  msg.textContent="Sending message...";
-
-  try{
-    await api("/api/inbox/messages",{
-      method:"POST",
-      body:JSON.stringify({
-        message_type:type,
-        body,
-        customer_code:code
-      })
-    });
-
-    msg.textContent="Message sent successfully!";
-    document.getElementById("inboxBody").value="";
-    document.getElementById("inboxCustomerCode").value="";
-
-    await loadInbox();
-
-  }catch(e){
-    msg.textContent=e.message;
-  }
-}
-
-function formatInboxDate(date){
-  if(!date)return "-";
-  return new Date(date).toLocaleString("en-IN",{
-    dateStyle:"medium",
-    timeStyle:"short"
-  });
-}
-
-async function loadInbox(){
-  const box=document.getElementById("inboxMessages");
-  box.textContent="Loading messages...";
-
-  try{
-    const messages=await api("/api/inbox/messages");
-
-    if(!messages.length){
-      box.textContent="No messages yet.";
-      return;
-    }
-
-    box.innerHTML=messages.map(m=>`
-      <div class="item" style="margin:12px 0">
-        <div class="row">
-          <strong>${m.message_type==="group"?"📢 Group Message":"✉️ Personal Message"}</strong>
-          <small>${safe(formatInboxDate(m.created_at))}</small>
-        </div>
-
-        ${isAdmin()?`
-          <small>To: ${safe(m.recipient_name||"All Customers")}</small>
-        `:""}
-
-        <p style="white-space:pre-wrap;overflow-wrap:anywhere">${safe(m.body)}</p>
-
-        ${isAdmin()?`
-          <button class="secondary" style="width:auto"
-            onclick="showInboxReads('${safe(m.id)}')">
-            VIEW READ RECEIPTS
-          </button>
-          <div id="reads-${safe(m.id)}"></div>
-        `:`
-          <p><small>${m.is_read?"✓ Read":"● Unread"}</small></p>
-          ${!m.is_read?`
-            <button style="width:auto"
-              onclick="markInboxRead('${safe(m.id)}')">
-              OPEN MESSAGE
-            </button>
-          `:""}
-        `}
-      </div>
-    `).join("");
-
-  }catch(e){
-    box.textContent=e.message;
-  }
-}
-
-async function markInboxRead(id){
-  try{
-    await api("/api/inbox/messages/"+encodeURIComponent(id)+"/read",{
-      method:"POST"
-    });
-
-    await loadInbox();
-
-  }catch(e){
-    alert(e.message);
-  }
-}
-
-async function showInboxReads(id){
-  const box=document.getElementById("reads-"+id);
-  box.textContent="Loading read receipts...";
-
-  try{
-    const rows=await api(
-      "/api/inbox/messages/"+encodeURIComponent(id)+"/reads"
-    );
-
-    if(!rows.length){
-      box.textContent="No customers found.";
-      return;
-    }
-
-    box.innerHTML=`
-      <div class="tableWrap">
-        <table>
-          <tr>
-            <th>Customer</th>
-            <th>Status</th>
-            <th>Read Time</th>
-          </tr>
-          ${rows.map(c=>`
-            <tr>
-              <td>${safe(c.display_name)}</td>
-              <td>${c.is_read?"✓ Read":"✗ Not Read"}</td>
-              <td>${c.read_at?safe(formatInboxDate(c.read_at)):"-"}</td>
-            </tr>
-          `).join("")}
-        </table>
-      </div>
-    `;
-
-  }catch(e){
-    box.textContent=e.message;
-  }
-}
-
-// ============== END INBOX SYSTEM ==============
 
 async function placeOrder(){
-  const msg=document.getElementById("orderMessage");
-
-  if(!cart.length){
-    msg.textContent="Please add products first.";
-    return;
-  }
-
-  const items=cart.map(p=>({
-    product_id:p.id,
-    quantity:p.quantity
-  }));
-
-  msg.textContent="Submitting order...";
-
-  try{
-    await api("/api/orders",{
-      method:"POST",
-      body:JSON.stringify({items})
-    });
-
-    msg.textContent="Order submitted successfully!";
-    cart=[];
-    showCart();
-    await loadOrders();
-
-  }catch(e){
-    msg.textContent=e.message;
-  }
+try{
+if(!cartItems.length)throw Error("Cart is empty");
+await api("/api/orders",{
+method:"POST",
+body:JSON.stringify({items:cartItems.map(x=>({product_id:x.id,quantity:x.quantity}))})
+});
+cartItems=[];renderCart();
+$("cartMsg").textContent="Order submitted";
+}catch(e){$("cartMsg").textContent=e.message}
 }
 
-async function addCustomer(){
-  const display_name=document.getElementById("customerName").value.trim();
-  const code=document.getElementById("customerCode").value.trim();
-  const msg=document.getElementById("customerMessage");
+async function loadInventory(){
+try{
+let [a,b,c]=await Promise.all([
+api("/api/inventory"),
+api("/api/inventory/low-stock"),
+api("/api/inventory/movements")
+]);
+$("stockList").innerHTML=table(rows(a),[
+["Product",x=>esc(x.name)],
+["Stock",x=>esc(x.stock_quantity)],
+["SKU",x=>esc(x.sku||"-")]
+]);
+$("lowList").innerHTML=table(rows(b),[
+["Product",x=>esc(x.name)],
+["Stock",x=>esc(x.stock_quantity)],
+["Threshold",x=>esc(x.low_stock_threshold)]
+]);
+$("moveList").innerHTML=table(rows(c),[
+["Product",x=>esc(x.products?.name||x.product_id)],
+["Type",x=>esc(x.movement_type)],
+["Qty",x=>esc(x.quantity)],
+["Date",x=>esc(x.created_at)]
+]);
+}catch(e){$("stockList").textContent=e.message}
+}
 
-  if(!display_name){
-    msg.textContent="Enter customer name.";
-    return;
-  }
+async function adjust(){
+try{
+await api("/api/inventory/adjust",{
+method:"POST",
+body:JSON.stringify({
+product_id:$("adjProduct").value,
+movement_type:$("adjType").value,
+quantity:+$("adjQty").value,
+notes:$("adjNote").value
+})
+});
+$("invMsg").textContent="Stock updated";
+loadInventory();loadProducts();
+}catch(e){$("invMsg").textContent=e.message}
+}
 
-  if(!/^[A-Za-z0-9@]{6,12}$/.test(code)){
-    msg.textContent="Customer code must be 6-12 letters or numbers ( @ is also allowed ).";
-    return;
-  }
+async function loadSuppliers(){
+try{
+suppliers=rows(await api("/api/suppliers"));
+$("supplierList").innerHTML=table(suppliers,[
+["Supplier",x=>esc(x.name)],
+["Contact",x=>esc(x.contact_person)],
+["Phone",x=>esc(x.phone)]
+]);
+let opts=suppliers.filter(x=>x.active!==false).map(x=>
+`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
+$("purchaseSupplier").innerHTML='<option value="">Select supplier</option>'+opts;
+$("paySupplier").innerHTML=opts;
+}catch(e){$("supplierList").textContent=e.message}
+}
 
-  msg.textContent="Creating customer...";
+async function addSupplier(){
+try{
+await api("/api/suppliers",{
+method:"POST",
+body:JSON.stringify({
+name:$("sname").value,
+contact_person:$("scontact").value,
+phone:$("sphone").value,
+email:$("semail").value,
+gstin:$("sgst").value,
+address:$("saddress").value
+})
+});
+$("smsg").textContent="Supplier saved";
+loadSuppliers();
+}catch(e){$("smsg").textContent=e.message}
+}
 
-  try{
-    await api("/api/customers",{
-      method:"POST",
-      body:JSON.stringify({display_name,code})
-    });
+function addPurchaseItem(){
+let p=products.find(x=>x.id===$("purchaseProduct").value);
+let q=+$("purchaseQty").value,c=+$("purchaseCost").value;
+if(!p||!Number.isInteger(q)||q<1||c<0){
+$("purchaseMsg").textContent="Enter valid item, quantity and cost";return;
+}
+purchaseItems.push({product_id:p.id,name:p.name,quantity:q,unit_cost:c});
+$("purchaseItems").textContent=purchaseItems.map(x=>
+`${x.name} × ${x.quantity} @ ₹${x.unit_cost}`).join("\n");
+}
 
-    msg.textContent="Customer created successfully. Keep the code safe: "+code;
+async function savePurchase(){
+try{
+if(!purchaseItems.length)throw Error("Add items first");
+await api("/api/purchases",{
+method:"POST",
+body:JSON.stringify({
+supplier_id:$("purchaseSupplier").value||null,
+invoice_number:$("invoice").value,
+purchase_date:new Date().toISOString().slice(0,10),
+items:purchaseItems.map(({product_id,quantity,unit_cost})=>({product_id,quantity,unit_cost})),
+tax_amount:+$("tax").value||0,
+other_charges:+$("charges").value||0
+})
+});
+purchaseItems=[];
+$("purchaseItems").textContent="No items";
+$("purchaseMsg").textContent="Draft saved. Receive only after checking physical stock.";
+loadPurchases();
+}catch(e){$("purchaseMsg").textContent=e.message}
+}
 
-    document.getElementById("customerName").value="";
-    document.getElementById("customerCode").value="";
+async function loadPurchases(){
+try{
+let a=rows(await api("/api/purchases"));
+$("purchaseList").innerHTML=table(a,[
+["Invoice",x=>esc(x.invoice_number)],
+["Supplier",x=>esc(x.suppliers?.name)],
+["Total",x=>"₹"+esc(x.total)],
+["Status",x=>esc(x.status)],
+["Action",x=>x.status==="draft"?`<button onclick="receivePurchase('${esc(x.id)}')">RECEIVE STOCK</button>`:"-"]
+]);
+}catch(e){$("purchaseList").textContent=e.message}
+}
 
-    await loadCustomers();
+async function receivePurchase(id){
+if(!confirm("Confirm goods physically received? This changes inventory."))return;
+try{
+await api("/api/purchases/"+id+"/receive",{method:"POST"});
+loadPurchases();loadInventory();
+}catch(e){alert(e.message)}
+}
 
-  }catch(e){
-    msg.textContent=e.message;
-  }
+async function addExpense(){
+try{
+await api("/api/expenses",{
+method:"POST",
+body:JSON.stringify({
+category:$("ecat").value,
+amount:+$("eamount").value,
+expense_date:$("edate").value||undefined,
+payment_method:$("emethod").value,
+description:$("edesc").value
+})
+});
+$("emsg").textContent="Expense saved";
+loadExpenses();
+}catch(e){$("emsg").textContent=e.message}
+}
+
+async function loadExpenses(){
+try{
+let a=rows(await api("/api/expenses"));
+$("expenseList").innerHTML=table(a,[
+["Date",x=>esc(x.expense_date)],
+["Category",x=>esc(x.category)],
+["Amount",x=>"₹"+esc(x.amount)],
+["Action",x=>`<button class="red" onclick="deleteExpense('${esc(x.id)}')">Delete</button>`]
+]);
+}catch(e){$("expenseList").textContent=e.message}
+}
+
+async function deleteExpense(id){
+if(!confirm("Delete expense?"))return;
+try{await api("/api/expenses/"+id,{method:"DELETE"});loadExpenses()}
+catch(e){alert(e.message)}
 }
 
 async function loadCustomers(){
-  const box=document.getElementById("customers");
-  box.textContent="Loading customers...";
+try{
+customers=rows(await api("/api/customers"));
+$("customerList").innerHTML=table(customers,[
+["Name",x=>esc(x.display_name)],
+["Age flag",x=>x.age_verified?"Recorded":"Not recorded"],
+["Status",x=>x.active===false?"Inactive":"Active"]
+]);
+let opts=customers.map(x=>`<option value="${esc(x.id)}">${esc(x.display_name)}</option>`).join("");
+$("ledgerCustomer").innerHTML=opts;
+$("payCustomer").innerHTML=opts;
+}catch(e){$("customerList").textContent=e.message}
+}
 
-  try{
-    const data=await api("/api/customers");
-    customerList=list(data);
-
-    const select=document.getElementById("ledgerCustomer");
-    select.innerHTML='<option value="">Select customer</option>';
-
-    customerList.forEach(c=>{
-      if(c.active!==false){
-        const option=document.createElement("option");
-        option.value=c.id;
-        option.textContent=c.display_name;
-        select.appendChild(option);
-      }
-    });
-
-    if(!customerList.length){
-      box.textContent="No customers found.";
-      return;
-    }
-
-    box.innerHTML=`
-      <div class="tableWrap">
-      <table>
-        <tr><th>Customer</th><th>Status</th></tr>
-        ${customerList.map(c=>`
-          <tr>
-            <td>${safe(c.display_name)}</td>
-            <td>${c.active===false?"Inactive":"Active"}</td>
-          </tr>
-        `).join("")}
-      </table>
-      </div>
-    `;
-
-  }catch(e){
-    box.textContent=e.message;
-  }
+async function addCustomer(){
+try{
+await api("/api/customers",{
+method:"POST",
+body:JSON.stringify({display_name:$("cname").value,code:$("ccode").value})
+});
+$("cmsg").textContent="Customer created. Share code securely.";
+loadCustomers();
+}catch(e){$("cmsg").textContent=e.message}
 }
 
 async function loadOrders(){
-  const box=document.getElementById("orders");
-  box.textContent="Loading orders...";
-
-  try{
-    const data=await api("/api/orders");
-    const rows=list(data);
-
-    if(!rows.length){
-      box.textContent="No orders found.";
-      return;
-    }
-
-    box.innerHTML=`
-      <div class="tableWrap">
-      <table>
-        <tr>
-          ${isAdmin()?"<th>Customer</th>":""}
-          <th>Order</th>
-          <th>Items</th>
-          <th>Total</th>
-          <th>Status</th>
-          <th>Date</th>
-          ${isAdmin()?"<th>Action</th>":""}
-        </tr>
-
-        ${rows.map(o=>`
-          <tr>
-            ${isAdmin()?`<td>${safe(o.customers?.display_name||"Customer")}</td>`:""}
-            <td>${safe(String(o.id).slice(0,8))}</td>
-            <td>${Array.isArray(o.items)?o.items.map(i=>safe(i.name)+" × "+safe(i.quantity)).join("<br>"):"-"}</td>
-            <td>₹${safe(o.total)}</td>
-            <td>${safe(o.status||"Pending")}</td>
-            <td>${safe(o.created_at||"")}</td>
-
-            ${isAdmin()?`
-              <td>
-                ${o.status==="pending"?`
-                  <button class="success" onclick="updateOrder('${safe(o.id)}','accepted')">Accept</button>
-                  <button class="danger" onclick="updateOrder('${safe(o.id)}','cancelled')">Cancel</button>
-                `:"Handled"}
-              </td>
-            `:""}
-          </tr>
-        `).join("")}
-      </table>
-      </div>
-    `;
-
-  }catch(e){
-    box.textContent=e.message;
-  }
+try{
+let a=rows(await api("/api/orders"));
+$("orderList").innerHTML=table(a,[
+[isAdmin()?"Customer":"Order",x=>isAdmin()?esc(x.customers?.display_name):esc(String(x.id).slice(0,8))],
+["Items",x=>Array.isArray(x.items)?x.items.map(i=>esc(i.name)+" × "+esc(i.quantity)).join("<br>"):"-"],
+["Total",x=>"₹"+esc(x.total)],
+["Status",x=>esc(x.status)],
+["Date",x=>esc(x.created_at)],
+["Action",x=>isAdmin()&&x.status==="pending"?`<button class="green" onclick="orderStatus('${esc(x.id)}','accepted')">Accept</button><button class="red" onclick="orderStatus('${esc(x.id)}','cancelled')">Cancel</button>`:"-"]
+]);
+}catch(e){$("orderList").textContent=e.message}
 }
 
-async function updateOrder(id,status){
-  const action=status==="accepted"?"accept":"cancel";
-
-  if(!confirm("Are you sure you want to "+action+" this order?")){
-    return;
-  }
-
-  try{
-    await api("/api/orders/"+encodeURIComponent(id)+"/status",{
-      method:"PATCH",
-      body:JSON.stringify({status})
-    });
-
-    await loadOrders();
-
-  }catch(e){
-    alert(e.message);
-  }
-}
-
-async function addLedger(){
-  const customer_id=document.getElementById("ledgerCustomer").value;
-  const amount=Number(document.getElementById("ledgerAmount").value);
-  const note=document.getElementById("ledgerNote").value.trim();
-  const msg=document.getElementById("ledgerMessage");
-
-  if(!customer_id){
-    msg.textContent="Please select a customer.";
-    return;
-  }
-
-  if(!Number.isFinite(amount)||amount===0){
-    msg.textContent="Enter a valid non-zero amount.";
-    return;
-  }
-
-  msg.textContent="Saving ledger entry...";
-
-  try{
-    await api("/api/ledger",{
-      method:"POST",
-      body:JSON.stringify({customer_id,amount,note})
-    });
-
-    msg.textContent="Ledger entry saved successfully!";
-
-    document.getElementById("ledgerAmount").value="";
-    document.getElementById("ledgerNote").value="";
-
-    await loadLedger();
-
-  }catch(e){
-    msg.textContent=e.message;
-  }
+async function orderStatus(id,status){
+if(!confirm("Confirm "+status+"?"))return;
+try{
+await api("/api/orders/"+id+"/status",{method:"PATCH",body:JSON.stringify({status})});
+loadOrders();
+}catch(e){alert(e.message)}
 }
 
 async function loadLedger(){
-  const box=document.getElementById("ledger");
-  box.textContent="Loading ledger...";
-
-  try{
-    const data=await api("/api/ledger");
-    const rows=list(data);
-
-    if(!rows.length){
-      box.textContent="No ledger entries found.";
-      return;
-    }
-
-    box.innerHTML=`
-      <div class="tableWrap">
-      <table>
-        <tr>
-          ${isAdmin()?"<th>Customer</th>":""}
-          <th>Description</th>
-          <th>Amount</th>
-          <th>Date</th>
-        </tr>
-
-        ${rows.map(l=>`
-          <tr>
-            ${isAdmin()?`<td>${safe(l.customers?.display_name||"Customer")}</td>`:""}
-            <td>${safe(l.note||"-")}</td>
-            <td>₹${safe(l.amount)}</td>
-            <td>${safe(l.created_at||"")}</td>
-          </tr>
-        `).join("")}
-      </table>
-      </div>
-    `;
-
-  }catch(e){
-    box.textContent=e.message;
-  }
+try{
+let a=rows(await api("/api/ledger"));
+$("ledgerList").innerHTML=table(a,[
+[isAdmin()?"Customer":"Date",x=>isAdmin()?esc(x.customers?.display_name):esc(x.created_at)],
+["Note",x=>esc(x.note)],
+["Amount",x=>"₹"+esc(x.amount)],
+["Date",x=>esc(x.created_at)]
+]);
+}catch(e){$("ledgerList").textContent=e.message}
 }
 
-document.getElementById("loginCode").addEventListener("keydown",function(e){
-  if(e.key==="Enter")login();
+async function addLedger(){
+try{
+await api("/api/ledger",{
+method:"POST",
+body:JSON.stringify({
+customer_id:$("ledgerCustomer").value,
+amount:+$("lamount").value,
+note:$("lnote").value
+})
 });
+$("lmsg").textContent="Ledger entry saved";
+loadLedger();
+}catch(e){$("lmsg").textContent=e.message}
+}
 
-showCart();
+async function customerPayment(){
+try{
+await api("/api/customer-payments",{
+method:"POST",
+body:JSON.stringify({
+customer_id:$("payCustomer").value,
+amount:+$("cpAmount").value,
+payment_method:$("cpMethod").value,
+reference_number:$("cpRef").value
+})
+});
+$("cpMsg").textContent="Payment saved";
+loadPayments();loadLedger();
+}catch(e){$("cpMsg").textContent=e.message}
+}
+
+async function supplierPayment(){
+try{
+await api("/api/supplier-payments",{
+method:"POST",
+body:JSON.stringify({
+supplier_id:$("paySupplier").value,
+amount:+$("spAmount").value,
+payment_method:$("spMethod").value,
+reference_number:$("spRef").value
+})
+});
+$("spMsg").textContent="Payment saved";
+loadPayments();
+}catch(e){$("spMsg").textContent=e.message}
+}
+
+async function loadPayments(){
+try{
+let [a,b]=await Promise.all([
+api("/api/customer-payments"),
+api("/api/supplier-payments")
+]);
+$("cpList").innerHTML=table(rows(a),[
+["Customer",x=>esc(x.customers?.display_name)],
+["Amount",x=>"₹"+esc(x.amount)],
+["Method",x=>esc(x.payment_method)]
+]);
+$("spList").innerHTML=table(rows(b),[
+["Supplier",x=>esc(x.suppliers?.name)],
+["Amount",x=>"₹"+esc(x.amount)],
+["Method",x=>esc(x.payment_method)]
+]);
+}catch(e){$("cpList").textContent=e.message}
+}
+
+async function sendMessage(){
+try{
+await api("/api/inbox/messages",{
+method:"POST",
+body:JSON.stringify({
+message_type:$("mtype").value,
+customer_code:$("mcode").value,
+body:$("mbody").value
+})
+});
+$("mmsg").textContent="Message sent";
+$("mbody").value="";
+loadInbox();
+}catch(e){$("mmsg").textContent=e.message}
+}
+
+async function loadInbox(){
+try{
+let a=rows(await api("/api/inbox/messages"));
+$("messages").innerHTML=a.map(x=>
+`<div class="item">
+<b>${x.message_type==="group"?"Group message":"Personal message"}</b>
+<p>${esc(x.body)}</p>
+<small>${esc(x.created_at||"")}</small>
+${isAdmin()?`<button onclick="receipts('${esc(x.id)}')">READ RECEIPTS</button><div id="r${esc(x.id)}"></div>`
+:x.is_read?"✓ Read":`<button onclick="markRead('${esc(x.id)}')">MARK READ</button>`}
+</div>`).join("")||"No messages";
+}catch(e){$("messages").textContent=e.message}
+}
+
+async function markRead(id){
+try{
+await api("/api/inbox/messages/"+id+"/read",{method:"POST"});
+loadInbox();
+}catch(e){alert(e.message)}
+}
+
+async function receipts(id){
+try{
+let a=rows(await api("/api/inbox/messages/"+id+"/reads"));
+$("r"+id).innerHTML=table(a,[
+["Customer",x=>esc(x.display_name)],
+["Read",x=>x.is_read?"Yes":"No"],
+["Time",x=>esc(x.read_at)]
+]);
+}catch(e){$("r"+id).textContent=e.message}
+}
+
+async function loadSettings(){
+try{
+let a=rows(await api("/api/settings"));
+$("settingList").innerHTML=table(a,[
+["Key",x=>esc(x.setting_key)],
+["Value",x=>esc(typeof x.setting_value==="object"?JSON.stringify(x.setting_value):x.setting_value)]
+]);
+}catch(e){$("settingList").textContent=e.message}
+}
+
+async function saveSetting(){
+try{
+await api("/api/settings/"+encodeURIComponent($("setKey").value),{
+method:"PUT",
+body:JSON.stringify({value:$("setValue").value})
+});
+$("setMsg").textContent="Saved";
+loadSettings();
+}catch(e){$("setMsg").textContent=e.message}
+}
+
+$("code").addEventListener("keydown",e=>{
+if(e.key==="Enter")login();
+});
 </script>
-
 </body>
 </html>
