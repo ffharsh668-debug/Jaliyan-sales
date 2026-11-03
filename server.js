@@ -697,45 +697,44 @@ app.get("/api/orders", needDb, auth, async (req, res) => {
 
 app.patch("/api/orders/:id/status", needDb, auth, admin, async (req, res) => {
   const status = req.body.status;
-
-  if (!["accepted", "cancelled"].includes(status)) {
-    return res.status(400).json({
-      error: "Invalid status."
-    });
+  if (!["accepted", "cancelled"].includes(status)) return res.status(400).json({ error: "Invalid status." });
+  const { data: order, error: orderError } = await db.from("orders").select("*").eq("id", req.params.id).eq("status", "pending").single();
+  if (orderError || !order) return res.status(400).json({ error: "Order not found or already handled." });
+  const { data: claimed, error: claimError } = await db.from("orders").update({ status, updated_at: new Date().toISOString() }).eq("id", order.id).eq("status", "pending").select().single();
+  if (claimError || !claimed) return res.status(400).json({ error: "Order not found or already handled." });
+  const changed = [];
+  const movementIds = [];
+  const rollback = async () => {
+    for (const item of changed.reverse()) await db.from("products").update({ stock_quantity: item.before }).eq("id", item.id).eq("stock_quantity", item.after);
+    if (movementIds.length) await db.from("inventory_movements").delete().in("id", movementIds);
+    await db.from("orders").update({ status: "pending", updated_at: new Date().toISOString() }).eq("id", order.id).eq("status", "accepted");
+  };
+  if (status === "accepted") {
+    const items = Array.isArray(order.items) ? order.items : [];
+    for (const item of items) {
+      const qty = Number(item.quantity);
+      if (!item.product_id || !Number.isInteger(qty) || qty < 1) { await rollback(); return res.status(400).json({ error: "Order contains invalid item details." }); }
+      const { data: product, error: productError } = await db.from("products").select("id,name,stock_quantity").eq("id", item.product_id).single();
+      if (productError || !product) { await rollback(); return res.status(400).json({ error: "An ordered product could not be found." }); }
+      const before = Number(product.stock_quantity || 0);
+      const after = before - qty;
+      if (after < 0) { await rollback(); return res.status(400).json({ error: "Insufficient stock for " + product.name + ". Available: " + before + ", required: " + qty }); }
+      const { data: updated, error: stockError } = await db.from("products").update({ stock_quantity: after }).eq("id", product.id).eq("stock_quantity", before).select("id").maybeSingle();
+      if (stockError || !updated) { await rollback(); return res.status(409).json({ error: "Stock changed while processing. Refresh inventory and try again." }); }
+      changed.push({ id: product.id, before, after });
+      const { data: movement, error: movementError } = await db.from("inventory_movements").insert({ product_id: product.id, movement_type: "sale_out", quantity: qty, notes: "Order accepted: " + order.id }).select("id").single();
+      if (movementError) { await rollback(); return res.status(500).json({ error: "Stock changed but movement record failed. Please check inventory." }); }
+      movementIds.push(movement.id);
+    }
+    const { error: ledgerError } = await db.from("ledger_entries").insert({ customer_id: order.customer_id, amount: -Number(order.total), note: "Order sale: " + order.id });
+    if (ledgerError) { await rollback(); return res.status(500).json({ error: "Stock updated but customer ledger could not be updated. Please verify before retrying." }); }
   }
-
-  const { data, error } = await db
-    .from("orders")
-    .update({
-      status,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", req.params.id)
-    .eq("status", "pending")
-    .select()
-    .single();
-
-  if (error || !data) {
-    return res.status(400).json({
-      error: "Order not found or already handled."
-    });
-  }
-
-  await audit(req, "order_status_updated", "order", data.id, {
-    status: data.status, customer_id: data.customer_id
-  });
-  const orderMessage = status === "accepted"
-    ? "Your order has been accepted."
-    : "Your order has been cancelled.";
-  const { error: inboxError } = await db.from("inbox_messages").insert({
-    message_type: "personal",
-    recipient_customer_id: data.customer_id,
-    body: orderMessage
-  });
+  await audit(req, "order_status_updated", "order", claimed.id, { status: claimed.status, customer_id: claimed.customer_id });
+  const orderMessage = status === "accepted" ? "Your order has been accepted. Stock and account ledger have been updated." : "Your order has been cancelled.";
+  const { error: inboxError } = await db.from("inbox_messages").insert({ message_type: "personal", recipient_customer_id: claimed.customer_id, body: orderMessage });
   if (inboxError) console.error("ORDER INBOX ERROR:", inboxError.message);
-  res.json(data);
+  res.json(claimed);
 });
-
 
 // ==========================================
 // LEDGER
