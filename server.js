@@ -88,7 +88,13 @@ app.get("/api/me", auth, (req, res) => res.json({ role: req.user.role, displayNa
 
 app.get("/api/products", needDb, auth, async (req, res) => {
   const { data, error } = await db.from("products").select("id,name,description,price,active,created_at").eq("active", true).order("name");
-  if (error) return res.status(500).json({ error: "Could not load products." });
+  if (error) {
+  console.error("PRODUCTS ERROR:", error);
+  return res.status(500).json({
+    error: "Could not load products.",
+    details: error.message
+  });
+}
   res.json(data);
 });
 app.post("/api/products", needDb, auth, admin, async (req, res) => {
