@@ -57,6 +57,15 @@ td,th{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb}
 
 <div class="card">
 <h2>Products</h2>
+<div id="adminProductForm" style="display:none; margin-bottom:20px;">
+  <h3>Add New Product</h3>
+  <input id="productName" placeholder="Product name">
+  <input id="productPrice" type="number" placeholder="Price (₹)">
+  <textarea id="productDescription" placeholder="Description"></textarea>
+  <button onclick="addProduct()">ADD PRODUCT</button>
+  <p id="productMessage"></p>
+</div>
+
 <div id="products" class="grid">Loading products...</div>
 </div>
 
