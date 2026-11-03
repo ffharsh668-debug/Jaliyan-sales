@@ -288,9 +288,12 @@ app.get("/api/me", auth, (req, res) => {
 // ==========================================
 
 app.get("/api/products", needDb, auth, async (req, res) => {
+  const productFields = req.user.role === "admin"
+    ? "*"
+    : "id,name,description,price,sku,category,unit,stock_quantity,low_stock_threshold,brand,pack_size,barcode,active";
   const { data, error } = await db
     .from("products")
-    .select("*")
+    .select(productFields)
     .eq("active", true)
     .order("name");
 
