@@ -174,6 +174,264 @@ app.post("/api/ledger", needDb, auth, admin, async (req, res) => {
   if (error) return res.status(500).json({ error: "Could not save entry." });
   res.json(data);
 });
+// ================= INBOX SYSTEM =================
+
+// Admin: Send group or personal message
+app.post("/api/inbox/messages", needDb, auth, admin, async (req, res) => {
+  try {
+    const type = String(req.body.message_type || "");
+    const body = String(req.body.body || "").trim();
+
+    if (!["group", "personal"].includes(type)) {
+      return res.status(400).json({ error: "Invalid message type." });
+    }
+
+    if (!body || body.length > 5000) {
+      return res.status(400).json({ error: "Message must be 1-5000 characters." });
+    }
+
+    let recipientId = null;
+
+    if (type === "personal") {
+      const code = String(req.body.customer_code || "");
+
+      if (!numericCode(code)) {
+        return res.status(400).json({ error: "Enter a valid customer code." });
+      }
+
+      const { data: customers, error: customerError } = await db
+        .from("customers")
+        .select("id,access_code_hash")
+        .eq("active", true);
+
+      if (customerError) {
+        return res.status(500).json({ error: "Could not find customer." });
+      }
+
+      let matched = null;
+
+      for (const customer of customers || []) {
+        if (await bcrypt.compare(code, customer.access_code_hash)) {
+          matched = customer;
+          break;
+        }
+      }
+
+      if (!matched) {
+        return res.status(404).json({ error: "Customer code not found." });
+      }
+
+      recipientId = matched.id;
+    }
+
+    const { data, error } = await db
+      .from("inbox_messages")
+      .insert({
+        message_type: type,
+        recipient_customer_id: recipientId,
+        body
+      })
+      .select("id,message_type,recipient_customer_id,body,created_at")
+      .single();
+
+    if (error) {
+      console.error("INBOX SEND ERROR:", error);
+      return res.status(500).json({ error: "Could not send message." });
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error("INBOX SEND ERROR:", error);
+    res.status(500).json({ error: "Could not send message." });
+  }
+});
+
+
+// Customer: See group messages and messages addressed to them
+// Admin: See all messages
+app.get("/api/inbox/messages", needDb, auth, async (req, res) => {
+  try {
+    if (req.user.role === "admin") {
+      const { data: messages, error } = await db
+        .from("inbox_messages")
+        .select("id,message_type,recipient_customer_id,body,created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      if (error) throw error;
+
+      const { data: customers, error: customerError } = await db
+        .from("customers")
+        .select("id,display_name");
+
+      if (customerError) throw customerError;
+
+      const customerMap = new Map(
+        (customers || []).map(c => [c.id, c.display_name])
+      );
+
+      return res.json((messages || []).map(m => ({
+        ...m,
+        recipient_name: m.recipient_customer_id
+          ? customerMap.get(m.recipient_customer_id) || "Customer"
+          : "All Customers"
+      })));
+    }
+
+    const customerId = req.user.customerId;
+
+    const { data: groupMessages, error: groupError } = await db
+      .from("inbox_messages")
+      .select("id,message_type,body,created_at")
+      .eq("message_type", "group")
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (groupError) throw groupError;
+
+    const { data: personalMessages, error: personalError } = await db
+      .from("inbox_messages")
+      .select("id,message_type,body,created_at")
+      .eq("message_type", "personal")
+      .eq("recipient_customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (personalError) throw personalError;
+
+    const messages = [
+      ...(groupMessages || []),
+      ...(personalMessages || [])
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    const { data: reads, error: readError } = await db
+      .from("inbox_reads")
+      .select("message_id,read_at")
+      .eq("customer_id", customerId);
+
+    if (readError) throw readError;
+
+    const readMap = new Map(
+      (reads || []).map(r => [r.message_id, r.read_at])
+    );
+
+    res.json(messages.map(m => ({
+      ...m,
+      is_read: readMap.has(m.id),
+      read_at: readMap.get(m.id) || null
+    })));
+  } catch (error) {
+    console.error("INBOX LOAD ERROR:", error);
+    res.status(500).json({ error: "Could not load inbox." });
+  }
+});
+
+
+// Customer: Mark a message as read
+app.post("/api/inbox/messages/:id/read", needDb, auth, async (req, res) => {
+  try {
+    if (req.user.role !== "customer") {
+      return res.status(403).json({ error: "Customer account required." });
+    }
+
+    const customerId = req.user.customerId;
+
+    const { data: message, error } = await db
+      .from("inbox_messages")
+      .select("id,message_type,recipient_customer_id")
+      .eq("id", req.params.id)
+      .maybeSingle();
+
+    if (error || !message) {
+      return res.status(404).json({ error: "Message not found." });
+    }
+
+    const allowed =
+      message.message_type === "group" ||
+      message.recipient_customer_id === customerId;
+
+    if (!allowed) {
+      return res.status(403).json({ error: "This message is not for you." });
+    }
+
+    const { error: readError } = await db
+      .from("inbox_reads")
+      .upsert(
+        {
+          message_id: message.id,
+          customer_id: customerId
+        },
+        {
+          onConflict: "message_id,customer_id",
+          ignoreDuplicates: true
+        }
+      );
+
+    if (readError) {
+      console.error("INBOX READ ERROR:", readError);
+      return res.status(500).json({ error: "Could not save read receipt." });
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("INBOX READ ERROR:", error);
+    res.status(500).json({ error: "Could not save read receipt." });
+  }
+});
+
+
+// Admin: See who has read a particular message
+app.get("/api/inbox/messages/:id/reads", needDb, auth, admin, async (req, res) => {
+  try {
+    const { data: message, error: messageError } = await db
+      .from("inbox_messages")
+      .select("id,message_type,recipient_customer_id")
+      .eq("id", req.params.id)
+      .maybeSingle();
+
+    if (messageError || !message) {
+      return res.status(404).json({ error: "Message not found." });
+    }
+
+    let customerQuery = db
+      .from("customers")
+      .select("id,display_name")
+      .eq("active", true)
+      .order("display_name");
+
+    if (message.message_type === "personal") {
+      customerQuery = customerQuery.eq("id", message.recipient_customer_id);
+    }
+
+    const { data: customers, error: customerError } = await customerQuery;
+
+    if (customerError) throw customerError;
+
+    const { data: reads, error: readsError } = await db
+      .from("inbox_reads")
+      .select("customer_id,read_at")
+      .eq("message_id", message.id);
+
+    if (readsError) throw readsError;
+
+    const readMap = new Map(
+      (reads || []).map(r => [r.customer_id, r.read_at])
+    );
+
+    res.json((customers || []).map(c => ({
+      customer_id: c.id,
+      display_name: c.display_name,
+      is_read: readMap.has(c.id),
+      read_at: readMap.get(c.id) || null
+    })));
+  } catch (error) {
+    console.error("INBOX RECEIPTS ERROR:", error);
+    res.status(500).json({ error: "Could not load read receipts." });
+  }
+});
+
+// ================= END INBOX SYSTEM =================
+
 app.get("/api/health", (req, res) => res.json({ app: "JALIYAAN SALES", databaseConfigured: supabaseReady }));
 
 async function notifyAdmin(order) {
