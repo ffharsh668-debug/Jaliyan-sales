@@ -2,6 +2,56 @@
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JALIYAAN SALES</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font:15px/1.5 Inter,system-ui,-apple-system,Arial,sans-serif;background:#f3f6fb;color:#17243a}header{background:linear-gradient(120deg,#10233e,#1d4267);color:white;text-align:center;padding:26px 16px;box-shadow:0 5px 20px #10233e22}header h1{margin:0;font-size:clamp(25px,5vw,36px);letter-spacing:1.5px}header p{margin:5px 0 0;color:#dce8f5}main{max-width:1180px;margin:22px auto;padding:12px}.card{background:white;padding:20px;border:1px solid #e7edf5;border-radius:16px;margin:14px 0;box-shadow:0 8px 28px #14243b0b}.card h2{margin-top:0;color:#172f4c}input,select,textarea,button{width:100%;padding:12px 14px;margin:6px 0;border:1px solid #d5deea;border-radius:9px;font:inherit}input:focus,select:focus,textarea:focus{outline:2px solid #9bbce0;border-color:#4276ad}button{background:#173b60;color:white;border:0;font-weight:700;cursor:pointer;transition:.15s}button:hover{filter:brightness(1.1);transform:translateY(-1px)}button.red{background:#b42318}button.green{background:#087443}.hidden{display:none!important}.tabs{display:flex;gap:7px;overflow-x:auto;padding:5px 0 10px;scrollbar-width:thin}.tabs button{width:auto;white-space:nowrap;flex:0 0 auto;padding:10px 15px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.msg{background:#eef3f8;padding:11px;margin:8px 0;border-radius:9px;white-space:pre-wrap}.table{overflow:auto;border:1px solid #e5ebf2;border-radius:10px}table{border-collapse:collapse;width:100%;min-width:450px;background:white}td,th{text-align:left;padding:11px;border-bottom:1px solid #e8edf3}th{background:#f4f7fb;color:#29435f;font-size:13px;text-transform:uppercase;letter-spacing:.4px}tr:last-child td{border-bottom:0}.item{border:1px solid #e1e8f0;border-radius:12px;padding:15px;margin:10px 0;background:#fff}.price{color:#087443;font-weight:800;font-size:17px}#productSearch{margin:8px 0 14px;padding:14px;border:1px solid #bdcad9;background:#fbfdff}.ledger-balance{background:#edf5ff;border:1px solid #d6e5f5;border-radius:12px;padding:14px;margin:10px 0}.ledger-balance h3{margin:0 0 6px}.ledger-credit{border-left:4px solid #087443}.ledger-debit{border-left:4px solid #b42318}.checkout-box{background:linear-gradient(135deg,#f3f8ff,#edf5f2);border:1px solid #dce8f1;border-radius:14px;padding:16px;margin-top:18px}.checkout-box h3{margin:4px 0 10px}.modal{position:fixed;inset:0;background:#0b1b2dcc;z-index:1000;display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto}.modal-card{background:#fff;width:min(720px,100%);max-height:94vh;overflow:auto;border-radius:16px;padding:22px;box-shadow:0 20px 60px #0004}.bill-head{text-align:center;border-bottom:2px solid #183b60;padding-bottom:12px;margin-bottom:15px}.bill-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.bill-total{text-align:right;font-size:21px;font-weight:800;margin-top:14px;color:#087443}.bill-actions{display:flex;gap:8px}.bill-actions button{flex:1}@media(max-width:600px){main{padding:7px;margin:10px auto}.card{padding:14px;border-radius:13px}.bill-meta{grid-template-columns:1fr}.modal-card{padding:15px}.tabs button{font-size:13px;padding:9px 12px}}@media print{body *{visibility:hidden!important}#orderBillModal,#orderBillModal *{visibility:visible!important}#orderBillModal{position:absolute;inset:0;background:white;padding:0;display:block!important;overflow:visible}.modal-card{width:100%;max-height:none;box-shadow:none;border:0}.bill-actions,.no-print{display:none!important}}
+
+/* Professional blue-and-white business dashboard refresh */
+:root{color-scheme:light;--navy:#102a43;--blue:#1769aa;--blue2:#eaf3fc;--line:#dce6f0;--ink:#17212b;--muted:#607286;--surface:#fff;--page:#f4f7fb}
+html{background:var(--page);scroll-behavior:smooth}
+body{background:var(--page);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:14px;line-height:1.55}
+header{background:#fff;color:var(--ink);text-align:left;padding:20px clamp(16px,4vw,42px);box-shadow:0 2px 12px #17324d0c;border-bottom:1px solid var(--line)}
+header h1{font-size:clamp(22px,3vw,29px);letter-spacing:.3px;color:var(--navy);font-weight:800}
+header p{color:var(--muted);font-size:13px;margin-top:2px}
+header select{margin:10px 0 0!important;border-color:var(--line);max-width:180px!important}
+main{max-width:1380px;margin:20px auto;padding:0 clamp(10px,2vw,24px)}
+.card{background:var(--surface);padding:clamp(16px,2vw,24px);border:1px solid var(--line);border-radius:14px;margin:14px 0;box-shadow:0 3px 14px #102a4309}
+.card h2{color:var(--navy);font-size:19px;font-weight:750;letter-spacing:-.2px;margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid #edf1f5}
+.card h3{color:var(--navy)}
+#app>.card:first-child{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--navy);color:#fff;border:0;padding:14px 18px}
+#app>.card:first-child #welcome{font-size:16px;letter-spacing:.2px}
+#app>.card:first-child button{width:auto;min-width:100px;margin:0;background:#fff;color:var(--navy);padding:9px 15px}
+.tabs{gap:8px;padding:10px 0 14px;overflow-x:auto;scrollbar-width:thin}
+.tabs button{width:auto;min-height:39px;margin:0;padding:9px 14px;border:1px solid #cbdced;border-radius:9px;background:#fff;color:#24445f;font-size:13px;font-weight:650;box-shadow:0 1px 3px #17324d08;transition:background .15s,border-color .15s}
+.tabs button:hover{background:var(--blue2);border-color:#8bb8df;color:#075a9e;transform:translateY(-1px)}
+button{background:var(--blue);color:#fff;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:700;letter-spacing:.15px;box-shadow:0 2px 5px #1769aa18}
+button:hover{filter:none;background:#10578f;transform:translateY(-1px)}
+button.red{background:#c43b43}button.green{background:#16794b}
+input,select,textarea{background:#fff;color:var(--ink);border:1px solid #cfdbe7;border-radius:9px;padding:11px 12px;font-size:14px;min-height:42px}
+input::placeholder,textarea::placeholder{color:#8795a4}
+input:focus,select:focus,textarea:focus{outline:3px solid #d8eafd;border-color:#4b91ca}
+label{color:#31465a;font-size:13px;font-weight:600}
+.grid{gap:13px}
+.msg{background:#edf5fd;color:#183b5b;border:1px solid #d7e8f8;padding:12px 14px;border-radius:10px}
+.item{border:1px solid var(--line);border-radius:11px;padding:15px;background:#fff;box-shadow:0 2px 8px #102a4307}
+.price{color:#137448}
+.table{border:1px solid var(--line);border-radius:11px}
+table{background:#fff;color:var(--ink)}
+td,th{padding:12px 13px;border-bottom:1px solid #edf1f5}
+th{background:#edf4fb;color:#24445f;font-weight:750;font-size:11px;letter-spacing:.55px}
+tr:hover td{background:#f8fbfe}
+.ledger-balance{background:#eaf3fc;border:1px solid #cfe2f5;color:#183b5b}
+.checkout-box{background:#f0f6fd;border:1px solid #d4e5f5;border-radius:12px;padding:17px}
+#overview .msg{background:#edf5fd;border-color:#d6e7f7}
+#login{max-width:480px;margin:38px auto;padding:26px}
+#login h2{font-size:23px}
+#productSearch{background:#f8fbfe;border-color:#cbdced}
+.modal{background:#102a43c9;backdrop-filter:blur(3px)}
+.modal-card{border:1px solid var(--line);border-radius:16px}
+.bill-head{color:var(--navy);border-color:var(--blue)}
+.bill-total{color:#16794b}
+small{color:var(--muted)}
+@media(min-width:900px){#adminNav,#customerNav{flex-wrap:wrap;overflow:visible}#overview .grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}}
+@media(max-width:600px){header{padding:16px}main{padding:0 10px;margin:12px auto}.card{margin:10px 0;padding:15px}#app>.card:first-child{padding:12px 14px}.tabs{padding:8px 0 12px}.tabs button{min-height:37px;padding:8px 11px;font-size:12px}.grid{grid-template-columns:1fr;gap:8px}button{min-height:42px}}
+@media print{header,.tabs,#app>.card:first-child{display:none!important}.card{box-shadow:none}}
+
 </style></head><body><header><h1>JALIYAAN SALES</h1><p>Sales & Customer Management Portal</p><select id="languageSelect" onchange="setLanguage(this.value)" style="max-width:190px;margin:12px auto 0;background:white;color:#17243a"><option value="en">English</option><option value="gu">ગુજરાતી (Gujarati)</option></select></header><main>
 <section id="login" class="card"><h2>Welcome</h2><p>Apna access code daalein.</p><input id="code" type="password" placeholder="Admin / Customer Code"><label><input id="age" type="checkbox" style="width:auto"> I confirm I meet the applicable legal age requirement.</label><button onclick="login()">LOGIN</button><div id="loginMsg" class="msg"></div><small>Age confirmation alone is not legal identity verification. Follow applicable laws.</small></section>
 <section id="app" class="hidden"><div class="card"><b id="welcome">Dashboard</b><button class="red" onclick="logout()">LOGOUT</button></div>
