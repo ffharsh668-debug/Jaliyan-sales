@@ -739,7 +739,7 @@ app.patch("/api/orders/:id/status", needDb, auth, admin, async (req, res) => {
       const { data: updated, error: stockError } = await db.from("products").update({ stock_quantity: after }).eq("id", product.id).eq("stock_quantity", before).select("id").maybeSingle();
       if (stockError || !updated) { await rollback(); return res.status(409).json({ error: "Stock changed while processing. Refresh inventory and try again." }); }
       changed.push({ id: product.id, before, after });
-      const { data: movement, error: movementError } = await db.from("inventory_movements").insert({ product_id: product.id, movement_type: "sale_out", quantity: qty, notes: "Order accepted: " + order.id }).select("id").single();
+      const { data: movement, error: movementError } = await db.from("inventory_movements").insert({ product_id: product.id, movement_type: "adjustment_out", quantity: qty, notes: "Sale accepted - Order: " + order.id }).select("id").single();
       if (movementError) { await rollback(); return res.status(500).json({ error: "Stock changed but movement record failed. Please check inventory." }); }
       movementIds.push(movement.id);
     }
