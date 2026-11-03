@@ -78,12 +78,12 @@ async function loadReports(){try{
 const vals=await Promise.all([api("/api/orders"),api("/api/expenses"),api("/api/customer-payments"),api("/api/supplier-payments"),api("/api/purchases"),api("/api/suppliers"),api("/api/products")]);
 reportCache={orders:rows(vals[0]),expenses:rows(vals[1]),customerPayments:rows(vals[2]),supplierPayments:rows(vals[3]),purchases:rows(vals[4]),suppliers:rows(vals[5]),products:rows(vals[6])};
 const accepted=reportCache.orders.filter(o=>o.status==="accepted");
-const sales=accepted.reduce((n,o)=>n+Number(o.total||0),0);
+const sales=accepted.reduce((n,o)=>n+(Array.isArray(o.items)?o.items.reduce((m,i)=>m+Number(i.quantity||0)*(Number(i.unit_price??i.price)||0),0):Number(o.total||0)),0);const gstCollected=accepted.reduce((n,o)=>n+Math.max(0,Number(o.total||0)-(Array.isArray(o.items)?o.items.reduce((m,i)=>m+Number(i.quantity||0)*(Number(i.unit_price??i.price)||0),0):Number(o.total||0))),0);
 const costs=new Map(reportCache.products.map(p=>[p.id,Number(p.cost_price||0)]));
 const cogs=accepted.reduce((n,o)=>n+(Array.isArray(o.items)?o.items.reduce((m,i)=>m+Number(i.quantity||0)*(costs.get(i.product_id)||0),0):0),0);
 const expenseTotal=reportCache.expenses.reduce((n,x)=>n+Number(x.amount||0),0);
 const profit=sales-cogs-expenseTotal;
-$("reportStats").innerHTML=[["Accepted Sales",sales],["Estimated Cost of Goods",cogs],["Expenses",expenseTotal],["Estimated Profit / Loss",profit]].map(x=>`<div class="msg">${x[0]}<h2>${reportMoney(x[1])}</h2></div>`).join("");
+$("reportStats").innerHTML=[["Sales (excl. GST)",sales],["GST Collected",gstCollected],["Estimated Product Cost",cogs],["Expenses",expenseTotal],["Estimated Profit / Loss",profit]].map(x=>`<div class="msg">${x[0]}<h2>${reportMoney(x[1])}</h2></div>`).join("");
 const supplierRows=reportCache.suppliers.map(s=>{const bought=reportCache.purchases.filter(p=>p.supplier_id===s.id&&p.status==="received").reduce((n,p)=>n+Number(p.total||0),0);const paid=reportCache.supplierPayments.filter(p=>p.supplier_id===s.id).reduce((n,p)=>n+Number(p.amount||0),0);return {name:s.name,purchased:bought,paid,balance:bought-paid}});
 $("supplierLedgerReport").innerHTML=table(supplierRows,[["Supplier",x=>esc(x.name)],["Received Purchases",x=>reportMoney(x.purchased)],["Payments",x=>reportMoney(x.paid)],["Balance Due",x=>reportMoney(x.balance)]]);
 const days=new Map();function day(date,key,amount){const d=String(date||"").slice(0,10)||"Unknown";if(!days.has(d))days.set(d,{date:d,received:0,paid:0,expenses:0});days.get(d)[key]+=Number(amount||0)}
