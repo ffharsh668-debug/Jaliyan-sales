@@ -230,6 +230,11 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
     });
   }
 
+  if (role === "customer" && customer?.id) {
+    const { error: loginUpdateError } = await db.from("customers").update({ last_login_at: new Date().toISOString() }).eq("id", customer.id);
+    if (loginUpdateError) console.error("CUSTOMER LAST LOGIN UPDATE:", loginUpdateError.message);
+  }
+
   const user = role === "admin"
     ? {
         role,
@@ -487,7 +492,7 @@ app.get("/api/admin-history", needDb, auth, admin, async (req, res) => {
 app.get("/api/customers", needDb, auth, admin, async (req, res) => {
   const { data, error } = await db
     .from("customers")
-    .select("id,display_name,active,age_verified,created_at")
+    .select("id,display_name,active,age_verified,created_at,last_login_at")
     .order("display_name");
 
   if (error) {
@@ -573,7 +578,7 @@ app.post("/api/orders", needDb, auth, orderLimiter, async (req, res) => {
 
   const { data: products, error: pe } = await db
     .from("products")
-    .select("id,name,price")
+    .select("id,name,price,cost_price")
     .eq("active", true);
 
   if (pe) {
@@ -610,6 +615,7 @@ app.post("/api/orders", needDb, auth, orderLimiter, async (req, res) => {
       product_id: product.id,
       name: product.name,
       unit_price: Number(product.price),
+      cost_price: Number(product.cost_price || 0),
       quantity
     });
   }
