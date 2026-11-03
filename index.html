@@ -377,7 +377,167 @@ function showCart(){
 }
 
 function removeItem(index){
-  cart.splice(index,1);
+  cart.splice(index,1);// ============== INBOX SYSTEM ==============
+
+function openInbox(){
+  document.getElementById("inboxSection").classList.remove("hidden");
+  document.getElementById("inboxSection").scrollIntoView({behavior:"smooth"});
+  document.getElementById("adminInboxForm").classList.toggle("hidden",!isAdmin());
+  loadInbox();
+}
+
+function togglePersonalMessage(){
+  const personal=document.getElementById("inboxType").value==="personal";
+  document.getElementById("personalCodeBox").classList.toggle("hidden",!personal);
+}
+
+async function sendInboxMessage(){
+  const type=document.getElementById("inboxType").value;
+  const body=document.getElementById("inboxBody").value.trim();
+  const code=document.getElementById("inboxCustomerCode").value.trim();
+  const msg=document.getElementById("inboxSendMessage");
+
+  if(!body){
+    msg.textContent="Please write a message.";
+    return;
+  }
+
+  if(type==="personal"&&!code){
+    msg.textContent="Please enter Customer Code.";
+    return;
+  }
+
+  msg.textContent="Sending message...";
+
+  try{
+    await api("/api/inbox/messages",{
+      method:"POST",
+      body:JSON.stringify({
+        message_type:type,
+        body,
+        customer_code:code
+      })
+    });
+
+    msg.textContent="Message sent successfully!";
+    document.getElementById("inboxBody").value="";
+    document.getElementById("inboxCustomerCode").value="";
+
+    await loadInbox();
+
+  }catch(e){
+    msg.textContent=e.message;
+  }
+}
+
+function formatInboxDate(date){
+  if(!date)return "-";
+  return new Date(date).toLocaleString("en-IN",{
+    dateStyle:"medium",
+    timeStyle:"short"
+  });
+}
+
+async function loadInbox(){
+  const box=document.getElementById("inboxMessages");
+  box.textContent="Loading messages...";
+
+  try{
+    const messages=await api("/api/inbox/messages");
+
+    if(!messages.length){
+      box.textContent="No messages yet.";
+      return;
+    }
+
+    box.innerHTML=messages.map(m=>`
+      <div class="item" style="margin:12px 0">
+        <div class="row">
+          <strong>${m.message_type==="group"?"📢 Group Message":"✉️ Personal Message"}</strong>
+          <small>${safe(formatInboxDate(m.created_at))}</small>
+        </div>
+
+        ${isAdmin()?`
+          <small>To: ${safe(m.recipient_name||"All Customers")}</small>
+        `:""}
+
+        <p style="white-space:pre-wrap;overflow-wrap:anywhere">${safe(m.body)}</p>
+
+        ${isAdmin()?`
+          <button class="secondary" style="width:auto"
+            onclick="showInboxReads('${safe(m.id)}')">
+            VIEW READ RECEIPTS
+          </button>
+          <div id="reads-${safe(m.id)}"></div>
+        `:`
+          <p><small>${m.is_read?"✓ Read":"● Unread"}</small></p>
+          ${!m.is_read?`
+            <button style="width:auto"
+              onclick="markInboxRead('${safe(m.id)}')">
+              OPEN MESSAGE
+            </button>
+          `:""}
+        `}
+      </div>
+    `).join("");
+
+  }catch(e){
+    box.textContent=e.message;
+  }
+}
+
+async function markInboxRead(id){
+  try{
+    await api("/api/inbox/messages/"+encodeURIComponent(id)+"/read",{
+      method:"POST"
+    });
+
+    await loadInbox();
+
+  }catch(e){
+    alert(e.message);
+  }
+}
+
+async function showInboxReads(id){
+  const box=document.getElementById("reads-"+id);
+  box.textContent="Loading read receipts...";
+
+  try{
+    const rows=await api(
+      "/api/inbox/messages/"+encodeURIComponent(id)+"/reads"
+    );
+
+    if(!rows.length){
+      box.textContent="No customers found.";
+      return;
+    }
+
+    box.innerHTML=`
+      <div class="tableWrap">
+        <table>
+          <tr>
+            <th>Customer</th>
+            <th>Status</th>
+            <th>Read Time</th>
+          </tr>
+          ${rows.map(c=>`
+            <tr>
+              <td>${safe(c.display_name)}</td>
+              <td>${c.is_read?"✓ Read":"✗ Not Read"}</td>
+              <td>${c.read_at?safe(formatInboxDate(c.read_at)):"-"}</td>
+            </tr>
+          `).join("")}
+        </table>
+      </div>
+    `;
+
+  }catch(e){
+    box.textContent=e.message;
+  }
+}
+
+// ============== END INBOX SYSTEM ==============
   showCart();
 }
 
