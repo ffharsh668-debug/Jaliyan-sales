@@ -718,7 +718,16 @@ app.get("/api/orders", needDb, auth, async (req, res) => {
     });
   }
 
-  res.json(data);
+  const safeData = req.user.role === "admin"
+    ? data
+    : data.map(order => ({
+        ...order,
+        items: Array.isArray(order.items)
+          ? order.items.map(({ cost_price, ...item }) => item)
+          : order.items
+      }));
+
+  res.json(safeData);
 });
 
 app.patch("/api/orders/:id/status", needDb, auth, admin, async (req, res) => {
