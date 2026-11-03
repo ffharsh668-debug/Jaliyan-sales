@@ -36,18 +36,37 @@ const db = supabaseReady
 
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
 
+// Netlify Functions may not populate Express req.ip consistently.
+// Prefer Netlify's client-IP header, then forwarded IP, then socket IP.
+function getRateLimitKey(req) {
+  const forwarded =
+    req.headers["x-nf-client-connection-ip"] ||
+    req.headers["x-forwarded-for"];
+
+  const forwardedIp = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  const clientIp = String(
+    forwardedIp || req.ip || req.socket?.remoteAddress || "unknown"
+  ).split(",")[0].trim();
+
+  return typeof rateLimit.ipKeyGenerator === "function"
+    ? rateLimit.ipKeyGenerator(clientIp)
+    : clientIp;
+}
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  keyGenerator: getRateLimitKey
 });
 
 const orderLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 20,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  keyGenerator: getRateLimitKey
 });
 
 function signSession(payload) {
