@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,21 +13,29 @@ header h1{margin:0;font-size:25px;letter-spacing:1px}
 header p{margin:7px 0 0;color:#cbd5e1}
 main{max-width:1000px;margin:25px auto;padding:15px}
 .card{background:white;padding:20px;border-radius:13px;margin-bottom:18px;box-shadow:0 3px 15px #0000000d}
-input,button,select{width:100%;padding:13px;margin:7px 0;border-radius:7px;border:1px solid #d5dce5;font-size:15px}
+input,button,select,textarea{width:100%;padding:13px;margin:7px 0;border-radius:7px;border:1px solid #d5dce5;font-size:15px}
+textarea{min-height:75px;font-family:Arial;resize:vertical}
 button{background:#14243b;color:white;border:0;font-weight:bold;cursor:pointer}
 button:hover{opacity:.9}
-.secondary{background:#64748b}
 .danger{background:#b42318}
+.success{background:#087443}
+.secondary{background:#64748b}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
 .item{border:1px solid #e2e8f0;border-radius:10px;padding:15px}
 .price{font-weight:bold;color:#087443;font-size:19px}
-.hidden{display:none}
+.hidden{display:none!important}
 h2{margin-top:0}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 small{color:#64748b}
-table{width:100%;border-collapse:collapse}
+table{width:100%;border-collapse:collapse;min-width:450px}
+.tableWrap{overflow-x:auto}
 td,th{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb}
-#message{padding:10px;border-radius:7px;margin:10px 0}
+.message{padding:10px;border-radius:7px;margin:10px 0;background:#f1f5f9;overflow-wrap:anywhere}
+@media(max-width:600px){
+ main{padding:10px;margin:10px auto}
+ .card{padding:15px}
+ header{padding:18px}
+}
 </style>
 </head>
 <body>
@@ -43,10 +52,11 @@ td,th{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb}
 <p>Enter your Admin Password or Customer Code.</p>
 <input id="loginCode" type="password" placeholder="Enter Login Code">
 <button onclick="login()">LOGIN</button>
-<div id="loginMessage"></div>
+<div id="loginMessage" class="message"></div>
 </section>
 
 <section id="dashboard" class="hidden">
+
 <div class="card row">
 <div>
 <h2 id="welcome">Dashboard</h2>
@@ -57,13 +67,15 @@ td,th{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb}
 
 <div class="card">
 <h2>Products</h2>
-<div id="adminProductForm" style="display:none; margin-bottom:20px;">
-  <h3>Add New Product</h3>
-  <input id="productName" placeholder="Product name">
-  <input id="productPrice" type="number" placeholder="Price (₹)">
-  <textarea id="productDescription" placeholder="Description"></textarea>
-  <button onclick="addProduct()">ADD PRODUCT</button>
-  <p id="productMessage"></p>
+
+<div id="adminProductForm" class="hidden">
+<h3>Add New Product</h3>
+<input id="productName" placeholder="Product name">
+<input id="productPrice" type="number" min="0" step="0.01" placeholder="Price (₹)">
+<textarea id="productDescription" placeholder="Description"></textarea>
+<button onclick="addProduct()">ADD PRODUCT</button>
+<div id="productMessage" class="message"></div>
+<hr>
 </div>
 
 <div id="products" class="grid">Loading products...</div>
@@ -74,13 +86,37 @@ td,th{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb}
 <div id="cart">Your cart is empty.</div>
 <h3 id="total">Total: ₹0</h3>
 <button onclick="placeOrder()">PLACE ORDER</button>
+<div id="orderMessage" class="message"></div>
 </div>
 
 <div id="adminSection" class="hidden">
+
+<div class="card">
+<h2>Add Customer</h2>
+<input id="customerName" placeholder="Customer name">
+<input id="customerCode" type="text" minlength="6" maxlength="12" placeholder="Customer code (6-12 characters)">
+<button onclick="addCustomer()">CREATE CUSTOMER</button>
+<div id="customerMessage" class="message"></div>
+<small>Customer ko uska code securely de dein. Code dobara list mein nahi dikhaya jayega.</small>
+</div>
+
 <div class="card">
 <h2>Customer List</h2>
 <div id="customers">Loading customers...</div>
 </div>
+
+<div class="card">
+<h2>Add Account Ledger Entry</h2>
+<select id="ledgerCustomer">
+<option value="">Select customer</option>
+</select>
+<input id="ledgerAmount" type="number" step="0.01" placeholder="Amount (₹)">
+<textarea id="ledgerNote" placeholder="Description / Note"></textarea>
+<button onclick="addLedger()">SAVE LEDGER ENTRY</button>
+<div id="ledgerMessage" class="message"></div>
+<small>Positive amount = credit, negative amount = debit.</small>
+</div>
+
 </div>
 
 <div class="card">
@@ -92,14 +128,15 @@ td,th{text-align:left;padding:10px;border-bottom:1px solid #e5e7eb}
 <h2>Account Ledger</h2>
 <div id="ledger">Loading ledger...</div>
 </div>
-</section>
 
+</section>
 </main>
 
 <script>
 let currentUser=null;
 let productsList=[];
 let cart=[];
+let customerList=[];
 
 async function api(url,options={}){
   const response=await fetch(url,{
@@ -113,14 +150,20 @@ async function api(url,options={}){
 
   let data={};
   try{data=await response.json()}catch(e){}
-  if(!response.ok) throw new Error(data.error||"Request failed");
+
+  if(!response.ok){
+    throw new Error(data.details||data.error||"Request failed");
+  }
   return data;
 }
 
 function safe(value){
   return String(value??"").replace(/[&<>"']/g,c=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",
-    '"':"&quot;","'":"&#39;"
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
   }[c]));
 }
 
@@ -134,14 +177,82 @@ function list(data){
   return [];
 }
 
+function isAdmin(){
+  return currentUser?.role==="admin";
+}
+
 async function login(){
+  const code=document.getElementById("loginCode").value.trim();
+  const msg=document.getElementById("loginMessage");
+
+  if(!code){
+    msg.textContent="Please enter your code.";
+    return;
+  }
+
+  msg.textContent="Checking login...";
+
+  try{
+    const data=await api("/api/login",{
+      method:"POST",
+      body:JSON.stringify({code})
+    });
+
+    currentUser=data.user||data.customer||data;
+    await showDashboard();
+
+  }catch(error){
+    msg.textContent=error.message;
+  }
+}
+
+async function showDashboard(){
+  document.getElementById("loginSection").classList.add("hidden");
+  document.getElementById("dashboard").classList.remove("hidden");
+
+  const admin=isAdmin();
+
+  document.getElementById("adminProductForm").classList.toggle("hidden",!admin);
+  document.getElementById("adminSection").classList.toggle("hidden",!admin);
+  document.getElementById("cartSection").classList.toggle("hidden",admin);
+
+  document.getElementById("welcome").textContent=
+    admin?"Admin Dashboard":"Customer Dashboard";
+
+  document.getElementById("roleText").textContent=
+    admin?"Administrator":"Customer";
+
+  await loadProducts();
+  await loadOrders();
+  await loadLedger();
+
+  if(admin){
+    await loadCustomers();
+  }
+}
+
+async function logout(){
+  try{
+    await api("/api/logout",{method:"POST"});
+  }catch(e){}
+
+  currentUser=null;
+  productsList=[];
+  cart=[];
+
+  document.getElementById("dashboard").classList.add("hidden");
+  document.getElementById("loginSection").classList.remove("hidden");
+  document.getElementById("loginCode").value="";
+  document.getElementById("loginMessage").textContent="";
+}
+
 async function addProduct(){
   const name=document.getElementById("productName").value.trim();
   const price=Number(document.getElementById("productPrice").value);
   const description=document.getElementById("productDescription").value.trim();
   const msg=document.getElementById("productMessage");
 
-  if(!name || !Number.isFinite(price) || price<0){
+  if(!name||!Number.isFinite(price)||price<0){
     msg.textContent="Enter valid product name and price.";
     return;
   }
@@ -155,107 +266,72 @@ async function addProduct(){
     });
 
     msg.textContent="Product added successfully!";
+
     document.getElementById("productName").value="";
     document.getElementById("productPrice").value="";
     document.getElementById("productDescription").value="";
+
     await loadProducts();
+
   }catch(e){
     msg.textContent=e.message;
   }
-}  
-  const code=document.getElementById("loginCode").value.trim();
-  const msg=document.getElementById("loginMessage");
-
-  if(!code){msg.textContent="Please enter your code.";return;}
-
-  msg.textContent="Checking login...";
-
-  try{
-    const data=await api("/api/login",{
-      method:"POST",
-      body:JSON.stringify({code})
-    });
-
-    currentUser=data.user||data.customer||data;
-    await showDashboard();
-  }catch(error){
-    msg.textContent=error.message;
-  }
-}
-
-async function showDashboard(){
-  document.getElementById("loginSection").classList.add("hidden");
-  document.getElementById("dashboard").classList.remove("hidden");
-
-  const role=currentUser?.role||"customer";
-  const isAdmin=role==="admin";document.getElementById("adminProductForm").style.display=isAdmin?"block":"none";
-
-  document.getElementById("welcome").textContent=
-    isAdmin?"Admin Dashboard":"Customer Dashboard";
-
-  document.getElementById("roleText").textContent=
-    isAdmin?"Administrator":"Customer";
-
-  document.getElementById("adminSection").classList.toggle("hidden",!isAdmin);
-  document.getElementById("cartSection").classList.toggle("hidden",isAdmin);
-
-  await loadProducts();
-  await loadOrders();
-  await loadLedger();
-
-  if(isAdmin) await loadCustomers();
-}
-
-async function logout(){
-  try{await api("/api/logout",{method:"POST"});}catch(e){}
-  currentUser=null;
-  cart=[];
-  document.getElementById("dashboard").classList.add("hidden");
-  document.getElementById("loginSection").classList.remove("hidden");
-  document.getElementById("loginCode").value="";
-  document.getElementById("loginMessage").textContent="";
 }
 
 async function loadProducts(){
   const box=document.getElementById("products");
+  box.textContent="Loading products...";
+
   try{
     const data=await api("/api/products");
     productsList=list(data);
 
     if(!productsList.length){
-      box.textContent="No products available.";
+      box.textContent=isAdmin()
+        ?"No products yet. Add your first product above."
+        :"No products available.";
       return;
     }
 
     box.innerHTML=productsList.map((p,i)=>`
       <div class="item">
         <h3>${safe(p.name)}</h3>
+        <p>${safe(p.description||"")}</p>
         <p class="price">₹${safe(p.price)}</p>
-        ${currentUser?.role==="admin"?"":`
+        ${isAdmin()?"":`
           <button onclick="addToCart(${i})">ADD TO ORDER</button>
         `}
       </div>
     `).join("");
-  }catch(e){box.textContent=e.message;}
+
+  }catch(e){
+    box.textContent=e.message;
+  }
 }
 
 function addToCart(index){
   const p=productsList[index];
+  if(!p)return;
+
   const existing=cart.find(x=>x.id===p.id);
 
-  if(existing)existing.quantity++;
-  else cart.push({
-    id:p.id,
-    name:p.name,
-    price:Number(p.price),
-    quantity:1
-  });
+  if(existing){
+    existing.quantity++;
+  }else{
+    cart.push({
+      id:p.id,
+      name:p.name,
+      price:Number(p.price),
+      quantity:1
+    });
+  }
 
   showCart();
 }
 
 function showCart(){
   const box=document.getElementById("cart");
+
   if(!cart.length){
     box.textContent="Your cart is empty.";
   }else{
@@ -263,8 +339,7 @@ function showCart(){
       <div class="row">
         <span>${safe(p.name)} × ${p.quantity}</span>
         <span>₹${p.price*p.quantity}</span>
-        <button class="danger" style="width:auto"
-          onclick="removeItem(${i})">Remove</button>
+        <button class="danger" style="width:auto" onclick="removeItem(${i})">Remove</button>
       </div>
     `).join("");
   }
@@ -279,90 +354,271 @@ function removeItem(index){
 }
 
 async function placeOrder(){
-  if(!cart.length){alert("Please add products first.");return;}
+  const msg=document.getElementById("orderMessage");
 
-  const total=cart.reduce((sum,p)=>sum+p.price*p.quantity,0);
+  if(!cart.length){
+    msg.textContent="Please add products first.";
+    return;
+  }
+
+  const items=cart.map(p=>({
+    product_id:p.id,
+    quantity:p.quantity
+  }));
+
+  msg.textContent="Submitting order...";
 
   try{
     await api("/api/orders",{
       method:"POST",
-      body:JSON.stringify({items:cart,total})
+      body:JSON.stringify({items})
     });
 
-    alert("Order submitted successfully!");
+    msg.textContent="Order submitted successfully!";
     cart=[];
     showCart();
     await loadOrders();
-  }catch(e){alert(e.message);}
+
+  }catch(e){
+    msg.textContent=e.message;
+  }
 }
 
-async function loadOrders(){
-  const box=document.getElementById("orders");
+async function addCustomer(){
+  const display_name=document.getElementById("customerName").value.trim();
+  const code=document.getElementById("customerCode").value.trim();
+  const msg=document.getElementById("customerMessage");
+
+  if(!display_name){
+    msg.textContent="Enter customer name.";
+    return;
+  }
+
+  if(!/^[A-Za-z0-9@]{6,12}$/.test(code)){
+    msg.textContent="Customer code must be 6-12 letters or numbers ( @ is also allowed ).";
+    return;
+  }
+
+  msg.textContent="Creating customer...";
+
   try{
-    const data=await api("/api/orders");
-    const rows=list(data);
+    await api("/api/customers",{
+      method:"POST",
+      body:JSON.stringify({display_name,code})
+    });
 
-    if(!rows.length){box.textContent="No orders found.";return;}
+    msg.textContent="Customer created successfully. Keep the code safe: "+code;
 
-    box.innerHTML=`
-      <table>
-        <tr><th>Order</th><th>Total</th><th>Status</th><th>Date</th></tr>
-        ${rows.map(o=>`
-          <tr>
-            <td>${safe(o.id)}</td>
-            <td>₹${safe(o.total)}</td>
-            <td>${safe(o.status||"Pending")}</td>
-            <td>${safe(o.created_at||"")}</td>
-          </tr>
-        `).join("")}
-      </table>`;
-  }catch(e){box.textContent=e.message;}
+    document.getElementById("customerName").value="";
+    document.getElementById("customerCode").value="";
+
+    await loadCustomers();
+
+  }catch(e){
+    msg.textContent=e.message;
+  }
 }
 
 async function loadCustomers(){
   const box=document.getElementById("customers");
+  box.textContent="Loading customers...";
+
   try{
     const data=await api("/api/customers");
-    const rows=list(data);
+    customerList=list(data);
 
-    if(!rows.length){box.textContent="No customers found.";return;}
+    const select=document.getElementById("ledgerCustomer");
+    select.innerHTML='<option value="">Select customer</option>';
+
+    customerList.forEach(c=>{
+      if(c.active!==false){
+        const option=document.createElement("option");
+        option.value=c.id;
+        option.textContent=c.display_name;
+        select.appendChild(option);
+      }
+    });
+
+    if(!customerList.length){
+      box.textContent="No customers found.";
+      return;
+    }
 
     box.innerHTML=`
+      <div class="tableWrap">
       <table>
-        <tr><th>Customer</th><th>Customer Code</th></tr>
-        ${rows.map(c=>`
+        <tr><th>Customer</th><th>Status</th></tr>
+        ${customerList.map(c=>`
           <tr>
-            <td>${safe(c.customer_name||c.display_name)}</td>
-            <td>${safe(c.customer_code||"")}</td>
+            <td>${safe(c.display_name)}</td>
+            <td>${c.active===false?"Inactive":"Active"}</td>
           </tr>
         `).join("")}
-      </table>`;
-  }catch(e){box.textContent=e.message;}
+      </table>
+      </div>
+    `;
+
+  }catch(e){
+    box.textContent=e.message;
+  }
+}
+
+async function loadOrders(){
+  const box=document.getElementById("orders");
+  box.textContent="Loading orders...";
+
+  try{
+    const data=await api("/api/orders");
+    const rows=list(data);
+
+    if(!rows.length){
+      box.textContent="No orders found.";
+      return;
+    }
+
+    box.innerHTML=`
+      <div class="tableWrap">
+      <table>
+        <tr>
+          ${isAdmin()?"<th>Customer</th>":""}
+          <th>Order</th>
+          <th>Items</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Date</th>
+          ${isAdmin()?"<th>Action</th>":""}
+        </tr>
+
+        ${rows.map(o=>`
+          <tr>
+            ${isAdmin()?`<td>${safe(o.customers?.display_name||"Customer")}</td>`:""}
+            <td>${safe(String(o.id).slice(0,8))}</td>
+            <td>${Array.isArray(o.items)?o.items.map(i=>safe(i.name)+" × "+safe(i.quantity)).join("<br>"):"-"}</td>
+            <td>₹${safe(o.total)}</td>
+            <td>${safe(o.status||"Pending")}</td>
+            <td>${safe(o.created_at||"")}</td>
+
+            ${isAdmin()?`
+              <td>
+                ${o.status==="pending"?`
+                  <button class="success" onclick="updateOrder('${safe(o.id)}','accepted')">Accept</button>
+                  <button class="danger" onclick="updateOrder('${safe(o.id)}','cancelled')">Cancel</button>
+                `:"Handled"}
+              </td>
+            `:""}
+          </tr>
+        `).join("")}
+      </table>
+      </div>
+    `;
+
+  }catch(e){
+    box.textContent=e.message;
+  }
+}
+
+async function updateOrder(id,status){
+  const action=status==="accepted"?"accept":"cancel";
+
+  if(!confirm("Are you sure you want to "+action+" this order?")){
+    return;
+  }
+
+  try{
+    await api("/api/orders/"+encodeURIComponent(id)+"/status",{
+      method:"PATCH",
+      body:JSON.stringify({status})
+    });
+
+    await loadOrders();
+
+  }catch(e){
+    alert(e.message);
+  }
+}
+
+async function addLedger(){
+  const customer_id=document.getElementById("ledgerCustomer").value;
+  const amount=Number(document.getElementById("ledgerAmount").value);
+  const note=document.getElementById("ledgerNote").value.trim();
+  const msg=document.getElementById("ledgerMessage");
+
+  if(!customer_id){
+    msg.textContent="Please select a customer.";
+    return;
+  }
+
+  if(!Number.isFinite(amount)||amount===0){
+    msg.textContent="Enter a valid non-zero amount.";
+    return;
+  }
+
+  msg.textContent="Saving ledger entry...";
+
+  try{
+    await api("/api/ledger",{
+      method:"POST",
+      body:JSON.stringify({customer_id,amount,note})
+    });
+
+    msg.textContent="Ledger entry saved successfully!";
+
+    document.getElementById("ledgerAmount").value="";
+    document.getElementById("ledgerNote").value="";
+
+    await loadLedger();
+
+  }catch(e){
+    msg.textContent=e.message;
+  }
 }
 
 async function loadLedger(){
   const box=document.getElementById("ledger");
+  box.textContent="Loading ledger...";
+
   try{
     const data=await api("/api/ledger");
     const rows=list(data);
 
-    if(!rows.length){box.textContent="No ledger entries found.";return;}
+    if(!rows.length){
+      box.textContent="No ledger entries found.";
+      return;
+    }
 
     box.innerHTML=`
+      <div class="tableWrap">
       <table>
-        <tr><th>Description</th><th>Amount</th><th>Date</th></tr>
+        <tr>
+          ${isAdmin()?"<th>Customer</th>":""}
+          <th>Description</th>
+          <th>Amount</th>
+          <th>Date</th>
+        </tr>
+
         ${rows.map(l=>`
           <tr>
-            <td>${safe(l.description)}</td>
+            ${isAdmin()?`<td>${safe(l.customers?.display_name||"Customer")}</td>`:""}
+            <td>${safe(l.note||"-")}</td>
             <td>₹${safe(l.amount)}</td>
             <td>${safe(l.created_at||"")}</td>
           </tr>
         `).join("")}
-      </table>`;
-  }catch(e){box.textContent=e.message;}
+      </table>
+      </div>
+    `;
+
+  }catch(e){
+    box.textContent=e.message;
+  }
 }
+
+document.getElementById("loginCode").addEventListener("keydown",function(e){
+  if(e.key==="Enter")login();
+});
 
 showCart();
 </script>
+
 </body>
 </html>
