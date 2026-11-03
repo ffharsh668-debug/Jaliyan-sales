@@ -249,14 +249,14 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
 
   const token = signSession({
     user,
-    exp: Date.now() + 30 * 24 * 60 * 60 * 1000
+    exp: Date.now() + 90 * 24 * 60 * 60 * 1000
   });
 
   res.cookie("js_session", token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 30 * 24 * 60 * 60 * 1000
+    maxAge: 90 * 24 * 60 * 60 * 1000
   });
 
   res.json({
@@ -606,6 +606,7 @@ app.post("/api/orders", needDb, auth, orderLimiter, async (req, res) => {
     return res.status(403).json({ error: "You are inactive by admin. Please Contact admin to Activate your account." });
   }
 
+  const customerNote = String(req.body.customer_note || "").trim().slice(0, 1000);
   const items = Array.isArray(req.body.items)
     ? req.body.items
     : [];
@@ -666,6 +667,7 @@ app.post("/api/orders", needDb, auth, orderLimiter, async (req, res) => {
       customer_id: req.user.customerId,
       items: safeItems,
       total,
+      customer_note: customerNote,
       status: "pending",
       editable_until: new Date(
         Date.now() + 5 * 60 * 1000
@@ -744,14 +746,14 @@ app.delete("/api/orders/:id", needDb, auth, async (req, res) => {
 app.get("/api/orders", needDb, auth, async (req, res) => {
   let query = db
     .from("orders")
-    .select("id,customer_id,items,total,status,editable_until,created_at,updated_at,customers(display_name)")
+    .select("id,customer_id,items,total,customer_note,status,editable_until,created_at,updated_at,customers(display_name)")
     .order("created_at", { ascending: false })
     .limit(200);
 
   if (req.user.role === "customer") {
     query = db
       .from("orders")
-      .select("id,items,total,status,editable_until,created_at,updated_at")
+      .select("id,items,total,customer_note,status,editable_until,created_at,updated_at")
       .eq("customer_id", req.user.customerId)
       .order("created_at", { ascending: false })
       .limit(100);
@@ -1507,6 +1509,11 @@ app.post("/api/customer-payments", needDb, auth, admin, async (req, res) => {
   res.json(data);
 });
 
+
+// SUPPLIER LEDGER ADMIN ONLY
+app.get("/api/supplier-ledger", needDb, auth, admin, async (req, res) => { const {data,error}=await db.from("supplier_ledger_entries").select("id,supplier_id,amount,note,created_at,suppliers(name)").order("created_at",{ascending:false}).limit(1000); if(error)return res.status(500).json({error:"Could not load supplier ledger.",details:error.message}); res.json(data||[]); });
+app.post("/api/supplier-ledger", needDb, auth, admin, async (req,res)=>{ const supplier_id=String(req.body.supplier_id||""),amount=Number(req.body.amount),note=String(req.body.note||"").trim().slice(0,1000); if(!supplier_id||!Number.isFinite(amount)||amount===0)return res.status(400).json({error:"Select supplier and enter a non-zero amount."}); const {data:sp,error:se}=await db.from("suppliers").select("id").eq("id",supplier_id).single(); if(se||!sp)return res.status(400).json({error:"Supplier not found."}); const {data,error}=await db.from("supplier_ledger_entries").insert({supplier_id,amount,note}).select().single(); if(error)return res.status(500).json({error:"Could not save supplier ledger entry.",details:error.message}); await audit(req,"supplier_ledger_entry_created","supplier_ledger",data.id,{supplier_id,amount}); res.json(data); });
+app.delete("/api/supplier-ledger/:id", needDb, auth, admin, async (req,res)=>{ const {data,error}=await db.from("supplier_ledger_entries").delete().eq("id",req.params.id).select("id").single(); if(error||!data)return res.status(400).json({error:"Could not delete supplier ledger entry."}); await audit(req,"supplier_ledger_entry_deleted","supplier_ledger",data.id,{}); res.json({success:true}); });
 
 // ==========================================
 // SUPPLIER PAYMENTS
