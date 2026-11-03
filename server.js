@@ -55,7 +55,10 @@ function admin(req, res, next) {
   if (req.user.role !== "admin") return res.status(403).json({ error: "Admin only." });
   next();
 }
-function numericCode(code) { return typeof code === "string" && /^[A-Za-z0-9]{6,12}$/.test(code); }
+function numericCode(code) {
+  return typeof code === "string" && /^[A-Za-z0-9@]{6,12}$/.test(code);
+}
+
 
 app.post("/api/login", loginLimiter, needDb, async (req, res) => {
   const code = String(req.body.code || "");
