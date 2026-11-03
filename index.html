@@ -179,7 +179,7 @@ reportCache={orders:rows(vals[0]),expenses:rows(vals[1]),customerPayments:rows(v
 const accepted=reportCache.orders.filter(o=>o.status==="accepted");
 const sales=accepted.reduce((n,o)=>n+(Array.isArray(o.items)?o.items.reduce((m,i)=>m+Number(i.quantity||0)*(Number(i.unit_price??i.price)||0),0):Number(o.total||0)),0);const gstCollected=accepted.reduce((n,o)=>n+Math.max(0,Number(o.total||0)-(Array.isArray(o.items)?o.items.reduce((m,i)=>m+Number(i.quantity||0)*(Number(i.unit_price??i.price)||0),0):Number(o.total||0))),0);
 const costs=new Map(reportCache.products.map(p=>[p.id,Number(p.cost_price||0)]));
-const cogs=accepted.reduce((n,o)=>n+(Array.isArray(o.items)?o.items.reduce((m,i)=>m+Number(i.quantity||0)*(costs.get(i.product_id)||0),0):0),0);
+const cogs=accepted.reduce((n,o)=>n+(Array.isArray(o.items)?o.items.reduce((m,i)=>m+Number(i.quantity||0)*Number(i.cost_price??costs.get(i.product_id)??0),0):0),0);
 const expenseTotal=reportCache.expenses.reduce((n,x)=>n+Number(x.amount||0),0);
 const profit=sales-cogs-expenseTotal;
 $("reportStats").innerHTML=[["Sales (excl. GST)",sales],["GST Collected",gstCollected],["Estimated Product Cost",cogs],["Expenses",expenseTotal],["Estimated Profit / Loss",profit]].map(x=>`<div class="msg">${x[0]}<h2>${reportMoney(x[1])}</h2></div>`).join("");
