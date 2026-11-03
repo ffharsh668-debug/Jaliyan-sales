@@ -851,7 +851,7 @@ app.post("/api/ledger", needDb, auth, admin, async (req, res) => {
     .insert({
       customer_id,
       amount: Number(amount),
-      note: String(note)
+      note: "Admin Entry: " + String(note || "").trim()
     })
     .select()
     .single();
@@ -877,7 +877,24 @@ app.post("/api/ledger", needDb, auth, admin, async (req, res) => {
     customer_id, amount: Number(amount), customer_name: customer?.display_name || ""
   });
   res.json(data);
-});// ==========================================
+});
+
+app.delete("/api/ledger/:id", needDb, auth, admin, async (req, res) => {
+  const { data, error } = await db
+    .from("ledger_entries")
+    .delete()
+    .eq("id", req.params.id)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return res.status(400).json({ error: "Could not delete ledger entry." });
+  }
+
+  await audit(req, "ledger_entry_deleted", "ledger", data.id, {});
+  res.json({ success: true });
+});
+// ==========================================
 // SUPPLIERS
 // ==========================================
 
