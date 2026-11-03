@@ -537,6 +537,23 @@ app.post("/api/customers", needDb, auth, admin, async (req, res) => {
 // ORDERS
 // ==========================================
 
+app.post("/api/admin-sales", needDb, auth, admin, async (req, res) => {
+  const { customer_id, items, gst_percent = 0 } = req.body;
+  const rate = Number(gst_percent);
+  if (!customer_id || !Array.isArray(items) || !items.length || items.length > 50 || !Number.isFinite(rate) || rate < 0 || rate > 28) return res.status(400).json({ error: "Customer, items and GST rate from 0 to 28 are required." });
+  const { data: customer, error: customerError } = await db.from("customers").select("id").eq("id", customer_id).eq("active", true).single();
+  if (customerError || !customer) return res.status(400).json({ error: "Select an active customer." });
+  const { data: products, error: productError } = await db.from("products").select("id,name,price").eq("active", true);
+  if (productError) return res.status(500).json({ error: "Could not validate products." });
+  const productMap = new Map(products.map(p => [p.id, p]));
+  let subtotal = 0; const safeItems = [];
+  for (const item of items) { const product = productMap.get(item.product_id); const quantity = Number(item.quantity); if (!product || !Number.isInteger(quantity) || quantity < 1 || quantity > 10000) return res.status(400).json({ error: "Invalid product or quantity." }); const line = Number(product.price) * quantity; subtotal += line; safeItems.push({ product_id: product.id, name: product.name, unit_price: Number(product.price), quantity, gst_percent: rate, line_subtotal: line }); }
+  const taxAmount = subtotal * rate / 100; const total = subtotal + taxAmount;
+  const { data, error } = await db.from("orders").insert({ customer_id, items: safeItems, total, status: "pending", editable_until: new Date().toISOString() }).select().single();
+  if (error) return res.status(500).json({ error: "Could not create POS sale.", details: error.message });
+  await audit(req, "pos_sale_created", "order", data.id, { customer_id, subtotal, gst_percent: rate, tax_amount: taxAmount, total });
+  res.json(data);
+});
 app.post("/api/orders", needDb, auth, orderLimiter, async (req, res) => {
   if (req.user.role !== "customer") {
     return res.status(403).json({
