@@ -743,7 +743,7 @@ app.patch("/api/orders/:id/status", needDb, auth, admin, async (req, res) => {
       if (movementError) { await rollback(); return res.status(500).json({ error: "Stock changed but movement record failed. Please check inventory." }); }
       movementIds.push(movement.id);
     }
-    const { error: ledgerError } = await db.from("ledger_entries").insert({ customer_id: order.customer_id, amount: -Number(order.total), note: "Order sale: " + order.id });
+    const { error: ledgerError } = await db.from("ledger_entries").insert({ customer_id: order.customer_id, amount: Number(order.total), note: "Order sale: " + order.id });
     if (ledgerError) { await rollback(); return res.status(500).json({ error: "Stock updated but customer ledger could not be updated. Please verify before retrying." }); }
   }
   await audit(req, "order_status_updated", "order", claimed.id, { status: claimed.status, customer_id: claimed.customer_id });
