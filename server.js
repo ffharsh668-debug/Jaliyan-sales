@@ -312,7 +312,8 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
   res.cookie("js_session", token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" || req.get("x-forwarded-proto") === "https",
+    path: "/",
     maxAge: 90 * 24 * 60 * 60 * 1000
   });
 
