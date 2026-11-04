@@ -2117,38 +2117,84 @@ app.get("/api/health", (req, res) => {
 
 
 // ==========================================
-// WHATSAPP NOTIFICATION
+// EMAIL + WHATSAPP NOTIFICATIONS
 // ==========================================
 
 async function notifyAdmin(order) {
+  const tasks = [];
+
+  // Email notification through Resend. Configure EMAIL_API_KEY in Netlify.
+  const emailTo = process.env.ADMIN_EMAIL || "Harshthakkar7171@gmail.com";
+  const emailKey = process.env.EMAIL_API_KEY;
+
+  if (emailKey && emailTo) {
+    tasks.push(
+      fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${emailKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: process.env.EMAIL_FROM || "JALIYAAN SALES <onboarding@resend.dev>",
+          to: [emailTo],
+          subject: "New order received - JALIYAAN SALES",
+          text:
+            `A new order has been received in JALIYAAN SALES.\\n\\n` +
+            `Order ID: ${order.id}\\n` +
+            `Total: ₹${order.total}\\n\\n` +
+            "Please open your JALIYAAN SALES admin dashboard to review it."
+        })
+      }).then(async response => {
+        if (!response.ok) {
+          const detail = await response.text();
+          console.error("EMAIL NOTIFICATION ERROR:", response.status, detail);
+        }
+      }).catch(error => {
+        console.error("EMAIL NOTIFICATION ERROR:", error.message);
+      })
+    );
+  }
+
+  // Keep the existing optional WhatsApp notification intact.
   const to = process.env.ADMIN_WHATSAPP_NUMBER;
   const token = process.env.WHATSAPP_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-  if (!to || !token || !phoneId) return;
-
-  const version = process.env.WHATSAPP_API_VERSION || "v23.0";
-
-  await fetch(
-    `https://graph.facebook.com/${version}/${phoneId}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to,
-        type: "text",
-        text: {
-          body:
-            `JALIYAAN SALES: New order received. ` +
-            `Order ID: ${order.id}. Total: ₹${order.total}.`
+  if (to && token && phoneId) {
+    const version = process.env.WHATSAPP_API_VERSION || "v23.0";
+    tasks.push(
+      fetch(
+        `https://graph.facebook.com/${version}/${phoneId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            to,
+            type: "text",
+            text: {
+              body:
+                `JALIYAAN SALES: New order received. ` +
+                `Order ID: ${order.id}. Total: ₹${order.total}.`
+            }
+          })
         }
+      ).then(async response => {
+        if (!response.ok) {
+          const detail = await response.text();
+          console.error("WHATSAPP NOTIFICATION ERROR:", response.status, detail);
+        }
+      }).catch(error => {
+        console.error("WHATSAPP NOTIFICATION ERROR:", error.message);
       })
-    }
-  );
+    );
+  }
+
+  await Promise.all(tasks);
 }
 
 
