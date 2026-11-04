@@ -866,6 +866,23 @@ app.get("/api/orders", needDb, auth, async (req, res) => {
 });
 
 
+app.patch("/api/orders/:id/customer-edit", needDb, auth, async (req, res) => {
+  if (req.user.role !== "customer") return res.status(403).json({error:"Customer account required."});
+  const {data: order,error: readError}=await db.from("orders").select("*").eq("id",req.params.id).eq("customer_id",req.user.customerId).maybeSingle();
+  if(readError||!order)return res.status(404).json({error:"Order not found."});
+  const now=new Date().toISOString();
+  if(order.status!=="pending"||!order.editable_until||Date.now()>new Date(order.editable_until).getTime())return res.status(403).json({error:"Order edit time is over. Please contact Admin."});
+  const requested=Array.isArray(req.body.items)?req.body.items:[];
+  if(!requested.length||requested.length>50)return res.status(400).json({error:"Keep at least one product in the order."});
+  const {data: available,error: productError}=await db.from("products").select("id,name,price").eq("active",true);
+  if(productError)return res.status(500).json({error:"Could not validate products."});
+  const map=new Map((available||[]).map(p=>[String(p.id),p]));const items=[];let total=0;
+  for(const item of requested){const p=map.get(String(item.product_id||""));const quantity=Number(item.quantity);if(!p||!Number.isInteger(quantity)||quantity<1||quantity>10000)return res.status(400).json({error:"Invalid product or quantity."});const unit_price=Number(p.price);total+=unit_price*quantity;items.push({product_id:p.id,name:p.name,unit_price,quantity});}
+  const {data: updated,error}=await db.from("orders").update({items,total:Number(total.toFixed(2)),updated_at:now}).eq("id",order.id).eq("customer_id",req.user.customerId).eq("status","pending").gt("editable_until",now).select().maybeSingle();
+  if(error||!updated)return res.status(403).json({error:"Order edit time is over or the order has changed. Please refresh."});
+  notifyAdmin(updated).catch(()=>{});res.json(updated);
+});
+
 app.patch("/api/orders/:id", needDb, auth, admin, async (req, res) => {
   const keep = req.body.keep_indices;
   if (!Array.isArray(keep) || !keep.length || keep.length > 50 || keep.some(i => !Number.isInteger(i) || i < 0) || new Set(keep).size !== keep.length)
