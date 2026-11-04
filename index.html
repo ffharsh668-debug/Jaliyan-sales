@@ -236,7 +236,8 @@ async function loadLedger(){
    const totals=new Map();
    a.forEach(x=>{const id=String(x.customer_id);totals.set(id,(totals.get(id)||0)+Number(x.amount||0))});
    $("ledgerSummary").innerHTML='<div class="ledger-balance"><h3>Customer Current Balances</h3>'+cs.filter(c=>c.active!==false).map(c=>{const total=totals.get(String(c.id))||0;return '<div style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #dbe4ee;padding:10px 0"><b>'+esc(c.display_name)+'</b><strong style="color:'+(total>=0?"#087443":"#b42318")+'">₹'+total.toFixed(2)+'</strong></div>'}).join("")+'</div>';
-   $("ledgerList").innerHTML="";\n   updateLedgerPreview();
+   $("ledgerList").innerHTML="";
+   updateLedgerPreview();
   }else{
    const balance=a.reduce((sum,x)=>sum+Number(x.amount||0),0);
    $("ledgerSummary").innerHTML='<div class="ledger-balance"><h3>Your Current Ledger Balance</h3><div style="font-size:25px;font-weight:800">₹'+balance.toFixed(2)+'</div><small>Positive = credit · Negative = debit</small></div>';
@@ -256,7 +257,7 @@ function updateLedgerPreview(){
  if(!isAdmin()||!$("ledgerCustomer"))return;
  const customerId=$("ledgerCustomer").value;
  const base=ledgerEntriesCache.filter(x=>String(x.customer_id)===String(customerId)).reduce((sum,x)=>sum+Number(x.amount||0),0);
- const credit=Number($("lcredit")?.value||0),debit=Number($("ldebit")?.value||0);
+ const credit=parseFloat($("lcredit")?.value)||0,debit=parseFloat($("ldebit")?.value)||0;
  const valid=!(credit>0&&debit>0);
  const projected=base+(valid?(credit>0?credit:debit>0?-debit:0):0);
  $("ledgerCurrentAmount").textContent="₹"+base.toFixed(2);
