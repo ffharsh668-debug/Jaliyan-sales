@@ -270,7 +270,8 @@ app.post("/api/login", loginLimiter, needDb, async (req, res) => {
         }
       }
 
-      if (customer) role = "customer";
+      if (customer && customer.active !== false) role = "customer";
+      else customer = null;
     }
   }
 
@@ -572,6 +573,14 @@ app.get("/api/customers", needDb, auth, admin, async (req, res) => {
   res.json(data);
 });
 
+app.delete("/api/customers/:id", needDb, auth, admin, async (req, res) => {
+  // Keep historical orders and ledger entries; deactivate the account instead of deleting its row.
+  const { data, error } = await db.from("customers").update({ active: false })
+    .eq("id", req.params.id).select("id,display_name,active").single();
+  if (error || !data) return res.status(400).json({ error: "Could not delete customer." });
+  await audit(req, "customer_deleted", "customer", data.id, { display_name: data.display_name });
+  res.json({ success: true, customer: data });
+});
 app.patch("/api/customers/:id/status", needDb, auth, admin, async (req, res) => {
   const active = req.body.active;
   if (typeof active !== "boolean") {
