@@ -2124,7 +2124,7 @@ async function notifyAdmin(order) {
   const tasks = [];
 
   // Email notification through Resend. Configure EMAIL_API_KEY in Netlify.
-  const emailTo = process.env.ADMIN_EMAIL || "Harshthakkar7171@gmail.com";
+  const emailTo = process.env.ADMIN_EMAIL;
   const emailKey = process.env.EMAIL_API_KEY;
 
   if (emailKey && emailTo) {
