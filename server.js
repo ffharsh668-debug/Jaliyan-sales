@@ -574,12 +574,20 @@ app.get("/api/customers", needDb, auth, admin, async (req, res) => {
 });
 
 app.delete("/api/customers/:id", needDb, auth, admin, async (req, res) => {
-  // Keep historical orders and ledger entries; deactivate the account instead of deleting its row.
-  const { data, error } = await db.from("customers").update({ active: false })
-    .eq("id", req.params.id).select("id,display_name,active").single();
-  if (error || !data) return res.status(400).json({ error: "Could not delete customer." });
-  await audit(req, "customer_deleted", "customer", data.id, { display_name: data.display_name });
-  res.json({ success: true, customer: data });
+  // Permanently remove this customer's account and all customer-owned records in one DB transaction.
+  const { data, error } = await db.rpc("admin_delete_customer_permanently", {
+    p_customer_id: req.params.id
+  });
+  if (error || !data?.success) {
+    console.error("PERMANENT CUSTOMER DELETE ERROR:", error?.message || "Customer not found");
+    return res.status(400).json({ error: "Could not permanently delete customer data." });
+  }
+  // Keep only the admin security audit event; customer profile, login code, orders, ledger,
+  // payments and inbox messages are removed by the database function.
+  await audit(req, "customer_permanently_deleted", "customer", req.params.id, {
+    display_name: data.display_name
+  });
+  res.json({ success: true, deleted: true, display_name: data.display_name });
 });
 app.patch("/api/customers/:id/status", needDb, auth, admin, async (req, res) => {
   const active = req.body.active;
