@@ -350,7 +350,7 @@ app.get("/api/me", auth, (req, res) => {
 app.get("/api/products", needDb, auth, async (req, res) => {
   const productFields = req.user.role === "admin"
     ? "id,name,description,price,cost_price,sku,category,unit,brand,pack_size,barcode,active"
-    : "id,name,description,price,sku,category,unit,brand,pack_size,barcode,active,stock_quantity";
+    : "id,name,description,price,sku,category,unit,brand,pack_size,barcode,active";
   const { data, error } = await db
     .from("products")
     .select(productFields)
