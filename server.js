@@ -864,6 +864,40 @@ app.get("/api/orders", needDb, auth, async (req, res) => {
   res.json(safeData);
 });
 
+
+app.patch("/api/orders/:id", needDb, auth, admin, async (req, res) => {
+  const keep = req.body.keep_indices;
+  if (!Array.isArray(keep) || !keep.length || keep.length > 50 || keep.some(i => !Number.isInteger(i) || i < 0) || new Set(keep).size !== keep.length)
+    return res.status(400).json({ error: "Select at least one valid product." });
+  const { data: order, error: readError } = await db.from("orders").select("*").eq("id", req.params.id).maybeSingle();
+  if (readError || !order) return res.status(404).json({ error: "Order not found." });
+  const oldItems = Array.isArray(order.items) ? order.items : [];
+  if (keep.some(i => i >= oldItems.length)) return res.status(400).json({ error: "Invalid product selection." });
+  const items = keep.map(i => oldItems[i]);
+  const subtotal = items.reduce((n, x) => n + (Number(x.unit_price ?? x.price) || 0) * (Number(x.quantity) || 0), 0);
+  const gst = Math.max(0, Math.min(28, Number(items[0].gst_percent) || 0));
+  const total = Number((subtotal * (1 + gst / 100)).toFixed(2));
+  const oldTotal = Number(order.total) || 0;
+  const now = new Date().toISOString();
+  const { data: updated, error } = await db.from("orders").update({ items, total, updated_at: now }).eq("id", order.id).select().single();
+  if (error || !updated) return res.status(500).json({ error: "Could not update order." });
+  if (order.status === "accepted") {
+    const { data: entry, error: findError } = await db.from("ledger_entries").select("id").eq("customer_id", order.customer_id).eq("note", "Order sale: " + order.id).maybeSingle();
+    if (findError || !entry) {
+      await db.from("orders").update({ items: oldItems, total: oldTotal, updated_at: now }).eq("id", order.id);
+      return res.status(500).json({ error: "Order ledger entry not found; order was reverted." });
+    }
+    const { error: ledgerError } = await db.from("ledger_entries").update({ amount: total }).eq("id", entry.id);
+    if (ledgerError) {
+      await db.from("orders").update({ items: oldItems, total: oldTotal, updated_at: now }).eq("id", order.id);
+      return res.status(500).json({ error: "Ledger update failed; order was reverted." });
+    }
+  }
+  await audit(req, "order_edited", "order", order.id, { customer_id: order.customer_id, old_total: oldTotal, new_total: total, removed_items: oldItems.length - items.length });
+  await db.from("inbox_messages").insert({ message_type: "personal", recipient_customer_id: order.customer_id, body: "Your order was updated by Admin. New total: ₹" + total.toFixed(2) });
+  res.json(updated);
+});
+
 app.patch("/api/orders/:id/status", needDb, auth, admin, async (req, res) => {
   const status = req.body.status;
   if (!["accepted", "cancelled"].includes(status)) return res.status(400).json({ error: "Invalid status." });
