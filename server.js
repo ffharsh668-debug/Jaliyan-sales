@@ -160,6 +160,16 @@ function numericCode(code) {
 
 // Codes are bcrypt-hashed, so compare against every existing account before
 // creating a new one; UNIQUE on hashes alone cannot prevent duplicate raw codes.
+async function findAngadiaCustomerByCode(code) {
+ const normalized=String(code||"").trim();
+ if(/^\\d{3}$/.test(normalized)){
+  const {data,error}=await db.from("angadia_customer_codes").select("code,active,customers!inner(id,display_name,active)").eq("code",normalized).eq("active",true).maybeSingle();
+  if(error)throw new Error("Could not check assigned Angadia code.");
+  if(data)return data.customers&&data.customers.active!==false?data.customers:null;
+ }
+ return findActiveCustomerByCode(normalized);
+}
+
 async function findActiveCustomerByCode(code) {
   const normalized = String(code || "").trim();
   if (!numericCode(normalized)) return null;
@@ -979,9 +989,42 @@ app.patch("/api/orders/:id/status", needDb, auth, admin, async (req, res) => {
 // ANGADIA CODE ENTRY (ADMIN ONLY)
 // ==========================================
 
+app.get("/api/angadia-customer-codes",needDb,auth,admin,async(req,res)=>{
+ try{const {data,error}=await db.from("angadia_customer_codes").select("id,code,customer_id,active,created_at,customers!inner(id,display_name,active)").order("created_at",{ascending:false});if(error)throw error;res.json(data||[]);}
+ catch(error){res.status(500).json({error:"Could not load assigned codes."});}
+});
+app.post("/api/angadia-customer-codes",needDb,auth,admin,async(req,res)=>{
+ try{
+  const code=String(req.body.code||"").trim(),customerId=String(req.body.customer_id||"").trim();
+  if(!/^\\d{3}$/.test(code))return res.status(400).json({error:"Code must contain exactly 3 digits."});
+  if(!customerId)return res.status(400).json({error:"Select a customer."});
+  const {data:customer,error:ce}=await db.from("customers").select("id,display_name,active").eq("id",customerId).maybeSingle();
+  if(ce||!customer||customer.active===false)return res.status(400).json({error:"Select an active customer."});
+  const {data,error}=await db.from("angadia_customer_codes").insert({code,customer_id:customerId}).select("id,code,customer_id,active,created_at").single();
+  if(error){if(error.code==="23505")return res.status(409).json({error:"This 3-digit code is already assigned. Choose another code."});throw error;}
+  await audit(req,"angadia_customer_code_created","angadia_customer_code",data.id,{code,customer_id:customerId,customer_name:customer.display_name});
+  res.status(201).json({...data,customers:customer});
+ }catch(error){res.status(500).json({error:error.message||"Could not save assigned code."});}
+});
+app.patch("/api/angadia-customer-codes/:id",needDb,auth,admin,async(req,res)=>{
+ try{
+  if(typeof req.body.active!=="boolean")return res.status(400).json({error:"Active status is required."});
+  const {data,error}=await db.from("angadia_customer_codes").update({active:req.body.active,updated_at:new Date().toISOString()}).eq("id",req.params.id).select("id,code,active").single();
+  if(error||!data)return res.status(404).json({error:"Assigned code not found."});
+  await audit(req,"angadia_customer_code_status_changed","angadia_customer_code",data.id,{code:data.code,active:data.active});res.json(data);
+ }catch(error){res.status(500).json({error:"Could not update assigned code."});}
+});
+app.delete("/api/angadia-customer-codes/:id",needDb,auth,admin,async(req,res)=>{
+ try{
+  const {data,error}=await db.from("angadia_customer_codes").delete().eq("id",req.params.id).select("id,code").single();
+  if(error||!data)return res.status(404).json({error:"Assigned code not found."});
+  await audit(req,"angadia_customer_code_deleted","angadia_customer_code",data.id,{code:data.code});res.json({success:true});
+ }catch(error){res.status(500).json({error:"Could not delete assigned code."});}
+});
+
 app.post("/api/angadia/lookup", needDb, auth, admin, async (req, res) => {
   try {
-    const customer = await findActiveCustomerByCode(req.body.code);
+    const customer = await findAngadiaCustomerByCode(req.body.code);
     if (!customer) return res.status(404).json({ error: "Active customer not found for this code." });
 
     const [balanceResult, entriesResult] = await Promise.all([
@@ -1016,8 +1059,8 @@ app.post("/api/angadia-entries", needDb, auth, admin, async (req, res) => {
     }
 
     const [sender, receiver] = await Promise.all([
-      findActiveCustomerByCode(senderCode),
-      findActiveCustomerByCode(receiverCode)
+      findAngadiaCustomerByCode(senderCode),
+      findAngadiaCustomerByCode(receiverCode)
     ]);
     if (!sender) return res.status(404).json({ error: "Active Sender customer code not found." });
     if (!receiver) return res.status(404).json({ error: "Active Receiver customer code not found." });
