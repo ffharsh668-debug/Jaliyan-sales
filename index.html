@@ -125,6 +125,7 @@ small{color:var(--muted)}
 <div id="angadiaEntries" class="card panel hidden">
 <h2>Angadia – Code Entry</h2>
 <p class="section-hint">Enter Sender and Receiver customer codes. Both current ledgers and the transaction preview appear before saving.</p>
+<section class="item"><h3>Manually Assign 3-Digit Code</h3><p class="section-hint">Admin creates the code manually and links it to one customer. This code works only inside admin Code Entry, not normal login.</p><div class="grid"><input id="angadiaManualCode" type="text" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="Your 3-digit code" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3)"><select id="angadiaCodeCustomer"><option value="">Select customer</option></select></div><button type="button" class="green" onclick="saveAngadiaCustomerCode()">SAVE CUSTOMER CODE</button><div id="angadiaCodeMessage" class="msg" aria-live="polite"></div><h3>Saved 3-Digit Codes</h3><div id="angadiaCodeList"></div></section>
 <div class="grid angadia-parties">
   <section class="item angadia-party">
     <h3>Sender Account</h3>
@@ -196,7 +197,7 @@ async function loadPurchases(){try{let a=rows(await api("/api/purchases"));$("pu
 async function addExpense(){try{await api("/api/expenses",{method:"POST",body:JSON.stringify({category:$("ecat").value,amount:+$("eamount").value,expense_date:$("edate").value||undefined,payment_method:$("emethod").value,description:$("edesc").value})});$("emsg").textContent="Expense saved";loadExpenses()}catch(e){$("emsg").textContent=e.message}}
 async function loadExpenses(){try{let a=rows(await api("/api/expenses"));$("expenseList").innerHTML=table(a,[["Date",x=>esc(x.expense_date)],["Category",x=>esc(x.category)],["Amount",x=>"₹"+esc(x.amount)],["Action",x=>`<button class="red" onclick="deleteExpense('${esc(x.id)}')">Delete</button>`]])}catch(e){$("expenseList").textContent=e.message}}
 async function deleteExpense(id){if(!confirm("Delete expense?"))return;try{await api("/api/expenses/"+id,{method:"DELETE"});loadExpenses()}catch(e){alert(e.message)}}
-async function loadCustomers(){try{customers=rows(await api("/api/customers"));$("customerList").innerHTML=table(customers,[["Action",x=>x.active===false?'<button class="green" onclick="toggleCustomerStatus(\''+esc(x.id)+'\',true)">ACTIVATE</button>':'<button class="red" onclick="toggleCustomerStatus(\''+esc(x.id)+'\',false)">INACTIVE</button> <button class="red" onclick="deleteCustomer(\''+esc(x.id)+'\')">DELETE</button>'],["Customer Name",x=>esc(x.display_name)],["Status",x=>x.active===false?"Inactive":"Active"],["Access Code",x=>"<b style=\"color:#1769aa\">Set · Hidden</b>"]]);const customerTable=$("customerList").querySelector(".table");if(customerTable)customerTable.scrollLeft=0;let opts=customers.filter(x=>x.active!==false).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.display_name)+'</option>').join("");$("ledgerCustomer").innerHTML='<option value="">Select customer</option>'+opts;$("payCustomer").innerHTML=opts;updateLedgerPreview();await loadAdminCodes()}catch(e){$("customerList").textContent=e.message}}
+async function loadCustomers(){try{customers=rows(await api("/api/customers"));$("customerList").innerHTML=table(customers,[["Action",x=>x.active===false?'<button class="green" onclick="toggleCustomerStatus(\''+esc(x.id)+'\',true)">ACTIVATE</button>':'<button class="red" onclick="toggleCustomerStatus(\''+esc(x.id)+'\',false)">INACTIVE</button> <button class="red" onclick="deleteCustomer(\''+esc(x.id)+'\')">DELETE</button>'],["Customer Name",x=>esc(x.display_name)],["Status",x=>x.active===false?"Inactive":"Active"],["Access Code",x=>"<b style=\"color:#1769aa\">Set · Hidden</b>"]]);const customerTable=$("customerList").querySelector(".table");if(customerTable)customerTable.scrollLeft=0;let opts=customers.filter(x=>x.active!==false).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.display_name)+'</option>').join("");$("angadiaCodeCustomer").innerHTML='<option value="">Select customer</option>'+opts;$("ledgerCustomer").innerHTML='<option value="">Select customer</option>'+opts;$("payCustomer").innerHTML=opts;updateLedgerPreview();await loadAdminCodes()}catch(e){$("customerList").textContent=e.message}}
 async function loadCustomerLogins(){try{const list=rows(await api("/api/customers"));$("customerLoginList").innerHTML=table(list,[["Customer",x=>esc(x.display_name)],["Last Login",x=>x.last_login_at?new Date(x.last_login_at).toLocaleString():"Never logged in"],["Status",x=>x.active===false?"Inactive":"Active"],["Created",x=>x.created_at?new Date(x.created_at).toLocaleDateString():"-"],["Action",x=>'<button class="'+(x.active===false?"green":"red")+'" onclick="toggleCustomerStatus(\''+esc(x.id)+'\','+(x.active===false?'true':'false')+')">'+(x.active===false?"ACTIVATE":"DEACTIVATE")+'</button>']])}catch(e){$("customerLoginList").textContent=e.message}}
 async function deleteCustomer(id){const customer=customers.find(x=>String(x.id)===String(id));if(!customer)return;if(!confirm("PERMANENTLY DELETE "+customer.display_name+"? Their customer account, login code, orders, ledger, payments and inbox messages will be permanently erased. This cannot be undone. Continue?"))return;if(!confirm("Final confirmation: permanently erase ALL data for "+customer.display_name+"?"))return;try{await api("/api/customers/"+encodeURIComponent(id),{method:"DELETE"});alert("Customer and related data permanently deleted.");await loadCustomers()}catch(e){alert(e.message)}}
 async function toggleCustomerStatus(id,active){const action=active?"activate":"deactivate";if(!confirm("Are you sure you want to "+action+" this customer?"))return;try{await api("/api/customers/"+id+"/status",{method:"PATCH",body:JSON.stringify({active})});await loadCustomerLogins();await loadCustomers()}catch(e){alert(e.message)}}
@@ -377,9 +378,36 @@ async function saveAngadiaEntry() {
   updateAngadiaPreview();
  }
 }
-function loadAngadiaPanel() {
+async function loadAngadiaPanel() {
  if (!isAdmin()) return;
  updateAngadiaPreview();
+ try { await loadAngadiaCodes(); } catch (error) { $("angadiaCodeMessage").textContent = error.message; }
+}
+async function loadAngadiaCodes() {
+ const list=rows(await api("/api/angadia-customer-codes"));
+ $("angadiaCodeList").innerHTML=list.length?table(list,[
+ ["Code",x=>'<b style="color:#1769aa;font-size:18px">'+esc(x.code)+'</b>'],
+ ["Customer",x=>esc(x.customers?.display_name||"Customer")],
+ ["Status",x=>x.active?"Active":"Inactive"],
+ ["Created",x=>x.created_at?esc(new Date(x.created_at).toLocaleString()):"-"],
+ ["Action",x=>'<button class="'+(x.active?"red":"green")+'" onclick="toggleAngadiaCode(\''+esc(x.id)+'\','+(!x.active)+')">'+(x.active?"DEACTIVATE":"ACTIVATE")+'</button> <button class="red" onclick="deleteAngadiaCode(\''+esc(x.id)+'\')">DELETE</button>']
+ ]):'<div class="msg">No 3-digit codes saved yet.</div>';
+}
+async function saveAngadiaCustomerCode() {
+ const code=$("angadiaManualCode").value.trim(), customer_id=$("angadiaCodeCustomer").value, message=$("angadiaCodeMessage");
+ if(!/^\\d{3}$/.test(code)){message.textContent="Enter exactly 3 digits.";return;}
+ if(!customer_id){message.textContent="Select a customer.";return;}
+ try{await api("/api/angadia-customer-codes",{method:"POST",body:JSON.stringify({code,customer_id})});$("angadiaManualCode").value="";message.textContent="3-digit code saved and linked to customer.";await loadAngadiaCodes();}
+ catch(error){message.textContent=error.message;}
+}
+async function toggleAngadiaCode(id,active){
+ try{await api("/api/angadia-customer-codes/"+encodeURIComponent(id),{method:"PATCH",body:JSON.stringify({active})});await loadAngadiaCodes();}
+ catch(error){$("angadiaCodeMessage").textContent=error.message;}
+}
+async function deleteAngadiaCode(id){
+ if(!confirm("Delete this assigned 3-digit code?"))return;
+ try{await api("/api/angadia-customer-codes/"+encodeURIComponent(id),{method:"DELETE"});await loadAngadiaCodes();}
+ catch(error){$("angadiaCodeMessage").textContent=error.message;}
 }
 
 async function loadLedger(){
