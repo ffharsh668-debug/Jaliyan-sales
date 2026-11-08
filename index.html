@@ -381,7 +381,19 @@ async function saveAngadiaEntry() {
 async function loadAngadiaPanel() {
  if (!isAdmin()) return;
  updateAngadiaPreview();
- try { await loadAngadiaCodes(); } catch (error) { $("angadiaCodeMessage").textContent = error.message; }
+ try {
+  // Always fetch customers when Code Entry opens; the Customers tab may never have been opened.
+  const customerRows = rows(await api("/api/customers"));
+  customers = customerRows;
+  const activeCustomers = customerRows.filter(x => x.active !== false);
+  const options = activeCustomers.map(x => '<option value="'+esc(x.id)+'">'+esc(x.display_name)+'</option>').join("");
+  $("angadiaCodeCustomer").innerHTML = '<option value="">Select customer</option>' + options;
+  if (!activeCustomers.length) $("angadiaCodeMessage").textContent = "No active customers found. Add or activate a customer first.";
+  await loadAngadiaCodes();
+ } catch (error) {
+  $("angadiaCodeMessage").textContent = error.message || "Could not load customers.";
+  $("angadiaCodeCustomer").innerHTML = '<option value="">Could not load customers</option>';
+ }
 }
 async function loadAngadiaCodes() {
  const list=rows(await api("/api/angadia-customer-codes"));
