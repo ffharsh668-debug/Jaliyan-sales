@@ -350,6 +350,7 @@ function handleAngadiaCodeInput(side) {
  angadiaLookupTimers[side]=setTimeout(()=>lookupAngadiaParty(side,version),350);
 }
 async function lookupAngadiaParty(side, expectedVersion) {
+async function checkAngadiaCode(side) {
  const code = $(side === "sender" ? "angadiaSenderCode" : "angadiaReceiverCode").value.trim();
  const message = $("angadiaMessage");
  const version = expectedVersion ?? ++angadiaLookupVersions[side];
