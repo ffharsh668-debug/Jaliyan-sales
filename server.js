@@ -1022,6 +1022,60 @@ app.delete("/api/angadia-customer-codes/:id",needDb,auth,admin,async(req,res)=>{
  }catch(error){res.status(500).json({error:"Could not delete assigned code."});}
 });
 
+
+app.get("/api/angadia/accounts",needDb,auth,admin,async(req,res)=>{
+ try{
+  const [cr, sr, codes, home] = await Promise.all([
+   db.from("customers").select("id,display_name,active").eq("active",true).order("display_name"),
+   db.from("suppliers").select("id,name,active").eq("active",true).order("name"),
+   db.from("angadia_customer_codes").select("code,customer_id").eq("active",true),
+   db.from("home_ledger_entries").select("amount")
+  ]);
+  if(cr.error||sr.error||codes.error||home.error) throw new Error("Could not load account list.");
+  const [cl, sl] = await Promise.all([
+   db.from("ledger_entries").select("customer_id,amount"),
+   db.from("supplier_ledger_entries").select("supplier_id,amount")
+  ]);
+  if(cl.error||sl.error) throw new Error("Could not load account balances.");
+  const cbal={},sbal={}; (cl.data||[]).forEach(x=>cbal[x.customer_id]=(cbal[x.customer_id]||0)+Number(x.amount||0)); (sl.data||[]).forEach(x=>sbal[x.supplier_id]=(sbal[x.supplier_id]||0)+Number(x.amount||0));
+  const codeMap={}; (codes.data||[]).forEach(x=>codeMap[x.customer_id]=x.code);
+  res.json({customers:(cr.data||[]).map(x=>({type:"customer",id:x.id,name:x.display_name,code:codeMap[x.id]||"",balance:cbal[x.id]||0})),suppliers:(sr.data||[]).map(x=>({type:"supplier",id:x.id,name:x.name,balance:sbal[x.id]||0})),home:{type:"home",id:"home",name:"HOME",code:"801",balance:(home.data||[]).reduce((a,x)=>a+Number(x.amount||0),0)}});
+ }catch(e){res.status(500).json({error:e.message||"Could not load accounts."});}
+});
+app.post("/api/angadia/quick-customer",needDb,auth,admin,async(req,res)=>{
+ const name=String(req.body.name||"").trim().slice(0,100), code=String(req.body.code||"").trim();
+ if(!name||!/^[0-9]{3}$/.test(code)) return res.status(400).json({error:"Enter customer name and exactly 3 digit code."});
+ try{
+  const {data:existing,error:checkError}=await db.from("angadia_customer_codes").select("id").eq("code",code).maybeSingle();
+  if(checkError) throw checkError; if(existing) return res.status(409).json({error:"This 3-digit code is already used."});
+  const hiddenLoginCode=String(crypto.randomInt(100000,999999));
+  const hash=await bcrypt.hash(hiddenLoginCode,12);
+  const {data:customer,error:ce}=await db.from("customers").insert({display_name:name,access_code_hash:hash,active:true}).select("id,display_name,active").single();
+  if(ce) throw ce;
+  const {data:assigned,error:ae}=await db.from("angadia_customer_codes").insert({code,customer_id:customer.id}).select("id,code,customer_id,active").single();
+  if(ae){await db.from("customers").delete().eq("id",customer.id);throw ae;}
+  await audit(req,"angadia_quick_customer_created","customer",customer.id,{display_name:name,angadia_code:code});
+  res.status(201).json({customer,code:assigned.code});
+ }catch(e){res.status(500).json({error:e.message||"Could not create account."});}
+});
+app.post("/api/angadia/transfer",needDb,auth,admin,async(req,res)=>{
+ try{
+  const {sender_type, sender_id, receiver_type, receiver_id}=req.body;
+  const amount=Number(req.body.amount), note=String(req.body.note||"").trim().slice(0,500);
+  if(!["customer","supplier","home"].includes(sender_type)||!["customer","supplier","home"].includes(receiver_type)||!validAmount(amount)) return res.status(400).json({error:"Choose both accounts and enter a valid amount."});
+  const args={p_sender_type:sender_type,p_sender_customer_id:sender_type==="customer"?sender_id:null,p_sender_supplier_id:sender_type==="supplier"?sender_id:null,p_receiver_type:receiver_type,p_receiver_customer_id:receiver_type==="customer"?receiver_id:null,p_receiver_supplier_id:receiver_type==="supplier"?receiver_id:null,p_amount:Number(amount.toFixed(2)),p_note:note};
+  const {data:tx,error}=await db.rpc("create_angadia_transfer",args);
+  if(error||!tx) throw new Error(error?.message||"Could not save transfer.");
+  const [sender,receiver]=await Promise.all([
+   sender_type==="customer"?db.from("customers").select("display_name").eq("id",sender_id).maybeSingle():sender_type==="supplier"?db.from("suppliers").select("name").eq("id",sender_id).maybeSingle():Promise.resolve({data:{name:"HOME"}}),
+   receiver_type==="customer"?db.from("customers").select("display_name").eq("id",receiver_id).maybeSingle():receiver_type==="supplier"?db.from("suppliers").select("name").eq("id",receiver_id).maybeSingle():Promise.resolve({data:{name:"HOME"}})
+  ]);
+  await audit(req,"angadia_transfer_created","angadia_transaction",tx.id,{entry_code:tx.entry_code,sender_type,sender_id,receiver_type,receiver_id,amount});
+  for(const [type,id,body] of [[sender_type,sender_id," debited"],[receiver_type,receiver_id," credited"]]) if(type==="customer") {const {error:ie}=await db.from("inbox_messages").insert({message_type:"personal",recipient_customer_id:id,body:"Angadia Entry "+tx.entry_code+": ₹"+amount.toFixed(2)+body+(note?". "+note:"")});if(ie)console.error("ANGADIA NOTIFICATION ERROR:",ie.message);}
+  res.json({success:true,entry:tx,sender:{display_name:sender.data?.display_name||sender.data?.name||"HOME"},receiver:{display_name:receiver.data?.display_name||receiver.data?.name||"HOME"}});
+ }catch(e){res.status(400).json({error:e.message||"Could not save transfer."});}
+});
+
 app.post("/api/angadia/lookup", needDb, auth, admin, async (req, res) => {
   try {
     const customer = await findAngadiaCustomerByCode(req.body.code);
