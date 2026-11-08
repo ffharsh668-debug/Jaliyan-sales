@@ -128,13 +128,13 @@ small{color:var(--muted)}
 <div class="grid angadia-parties">
   <section class="item angadia-party">
     <h3>Sender Account</h3>
-    <input id="angadiaSenderCode" autocomplete="off" placeholder="Enter Sender customer code">
+    <input id="angadiaSenderCode" autocomplete="off" placeholder="Enter Sender customer code" oninput="angadiaSender=null;renderAngadiaParty('sender',null);updateAngadiaPreview()">
     <button type="button" onclick="lookupAngadiaParty('sender')">CHECK SENDER</button>
     <div id="angadiaSenderInfo" class="angadia-account-preview"><small>Sender details and current ledger will appear here.</small></div>
   </section>
   <section class="item angadia-party">
     <h3>Receiver Account</h3>
-    <input id="angadiaReceiverCode" autocomplete="off" placeholder="Enter Receiver customer code">
+    <input id="angadiaReceiverCode" autocomplete="off" placeholder="Enter Receiver customer code" oninput="angadiaReceiver=null;renderAngadiaParty('receiver',null);updateAngadiaPreview()">
     <button type="button" onclick="lookupAngadiaParty('receiver')">CHECK RECEIVER</button>
     <div id="angadiaReceiverInfo" class="angadia-account-preview"><small>Receiver details and current ledger will appear here.</small></div>
   </section>
