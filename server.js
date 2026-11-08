@@ -160,6 +160,23 @@ function numericCode(code) {
 
 // Codes are bcrypt-hashed, so compare against every existing account before
 // creating a new one; UNIQUE on hashes alone cannot prevent duplicate raw codes.
+async function findActiveCustomerByCode(code) {
+  const normalized = String(code || "").trim();
+  if (!numericCode(normalized)) return null;
+  const { data, error } = await db.from("customers")
+    .select("id,display_name,access_code_hash,active")
+    .eq("active", true);
+  if (error) throw new Error("Could not check customer code.");
+  const matches = [];
+  for (const customer of data || []) {
+    if (customer.access_code_hash && await bcrypt.compare(normalized, customer.access_code_hash)) {
+      matches.push(customer);
+    }
+  }
+  if (matches.length > 1) throw new Error("This code matches more than one customer. Contact Admin.");
+  return matches[0] || null;
+}
+
 async function accessCodeAlreadyUsed(code) {
   if (process.env.ADMIN_CODE && code === process.env.ADMIN_CODE) return true;
 
@@ -956,6 +973,104 @@ app.patch("/api/orders/:id/status", needDb, auth, admin, async (req, res) => {
   const { error: inboxError } = await db.from("inbox_messages").insert({ message_type: "personal", recipient_customer_id: claimed.customer_id, body: orderMessage });
   if (inboxError) console.error("ORDER INBOX ERROR:", inboxError.message);
   res.json(claimed);
+});
+
+// ==========================================
+// ANGADIA CODE ENTRY (ADMIN ONLY)
+// ==========================================
+
+app.post("/api/angadia/lookup", needDb, auth, admin, async (req, res) => {
+  try {
+    const customer = await findActiveCustomerByCode(req.body.code);
+    if (!customer) return res.status(404).json({ error: "Active customer not found for this code." });
+
+    const [balanceResult, entriesResult] = await Promise.all([
+      db.from("ledger_entries").select("amount").eq("customer_id", customer.id),
+      db.from("ledger_entries").select("id,amount,note,created_at")
+        .eq("customer_id", customer.id).order("created_at", { ascending: false }).limit(5)
+    ]);
+    if (balanceResult.error || entriesResult.error) {
+      return res.status(500).json({ error: "Could not load customer ledger." });
+    }
+    const balance = (balanceResult.data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    res.json({
+      id: customer.id,
+      display_name: customer.display_name,
+      balance,
+      recent_entries: entriesResult.data || []
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Could not verify customer code." });
+  }
+});
+
+app.post("/api/angadia-entries", needDb, auth, admin, async (req, res) => {
+  try {
+    const senderCode = String(req.body.sender_code || "").trim();
+    const receiverCode = String(req.body.receiver_code || "").trim();
+    const amount = Number(req.body.amount);
+    const note = String(req.body.note || "").trim().slice(0, 500);
+
+    if (!senderCode || !receiverCode || !validAmount(amount)) {
+      return res.status(400).json({ error: "Sender code, receiver code and a valid amount are required." });
+    }
+
+    const [sender, receiver] = await Promise.all([
+      findActiveCustomerByCode(senderCode),
+      findActiveCustomerByCode(receiverCode)
+    ]);
+    if (!sender) return res.status(404).json({ error: "Active Sender customer code not found." });
+    if (!receiver) return res.status(404).json({ error: "Active Receiver customer code not found." });
+    if (sender.id === receiver.id) {
+      return res.status(400).json({ error: "Sender and Receiver must be different customers." });
+    }
+
+    const { data: entry, error } = await db.rpc("create_angadia_entry", {
+      p_sender_customer_id: sender.id,
+      p_receiver_customer_id: receiver.id,
+      p_amount: Number(amount.toFixed(2)),
+      p_note: note
+    });
+    if (error || !entry) {
+      console.error("ANGADIA ENTRY ERROR:", error?.message || "No entry returned");
+      return res.status(500).json({ error: error?.message || "Could not save Angadia entry." });
+    }
+
+    const code = entry.entry_code;
+    const messageBase = "Angadia Entry " + code + ": ₹" + Number(amount).toFixed(2);
+    const [senderInbox, receiverInbox] = await Promise.all([
+      db.from("inbox_messages").insert({
+        message_type: "personal",
+        recipient_customer_id: sender.id,
+        body: messageBase + " debited from your account. Receiver: " + receiver.display_name + (note ? ". " + note : "")
+      }),
+      db.from("inbox_messages").insert({
+        message_type: "personal",
+        recipient_customer_id: receiver.id,
+        body: messageBase + " credited to your account. Sender: " + sender.display_name + (note ? ". " + note : "")
+      })
+    ]);
+    if (senderInbox.error) console.error("ANGADIA SENDER NOTIFICATION ERROR:", senderInbox.error.message);
+    if (receiverInbox.error) console.error("ANGADIA RECEIVER NOTIFICATION ERROR:", receiverInbox.error.message);
+
+    await audit(req, "angadia_entry_created", "angadia_entry", entry.id, {
+      entry_code: code,
+      sender_customer_id: sender.id,
+      sender_name: sender.display_name,
+      receiver_customer_id: receiver.id,
+      receiver_name: receiver.display_name,
+      amount: Number(amount)
+    });
+
+    res.json({
+      success: true,
+      entry,
+      sender: { id: sender.id, display_name: sender.display_name },
+      receiver: { id: receiver.id, display_name: receiver.display_name }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Could not save Angadia entry." });
+  }
 });
 
 // ==========================================
