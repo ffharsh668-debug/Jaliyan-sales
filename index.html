@@ -211,14 +211,14 @@ small{color:var(--muted)}
  <section class="item angadia-party">
   <div class="angadia-party-head"><h3>SENDER</h3><span>LEDGER</span><span>PREVIEW</span></div>
   <div class="angadia-party-line">
-   <div class="angadia-party-left"><select id="angadiaSenderSelect" onchange="selectAngadiaAccount('sender',this.value)"><option value="">Select Customer / Supplier</option></select><div id="angadiaSenderName" class="angadia-party-name">Select sender account</div></div>
+   <div class="angadia-party-left"><input id="angadiaSenderCode" type="text" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="Enter Sender Code" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3);lookupAngadiaCode('sender',this.value)"><div id="angadiaSenderName" class="angadia-party-name" aria-live="polite">Enter sender code</div></div>
    <div id="angadiaSenderLedger" class="angadia-balance">—</div><div id="angadiaSenderPreview" class="angadia-balance">—</div>
   </div>
  </section>
  <section class="item angadia-party">
   <div class="angadia-party-head"><h3>RECEIVER</h3><span>LEDGER</span><span>PREVIEW</span></div>
   <div class="angadia-party-line">
-   <div class="angadia-party-left"><select id="angadiaReceiverSelect" onchange="selectAngadiaAccount('receiver',this.value)"><option value="">Select Customer / Supplier</option></select><div id="angadiaReceiverName" class="angadia-party-name">Select receiver account</div></div>
+   <div class="angadia-party-left"><input id="angadiaReceiverCode" type="text" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="Enter Receiver Code" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3);lookupAngadiaCode('receiver',this.value)"><div id="angadiaReceiverName" class="angadia-party-name" aria-live="polite">Enter receiver code</div></div>
    <div id="angadiaReceiverLedger" class="angadia-balance">—</div><div id="angadiaReceiverPreview" class="angadia-balance">—</div>
   </div>
  </section>
@@ -383,11 +383,38 @@ function shareOrderBill(){if(!currentBillOrder)return;const o=currentBillOrder,i
 function closeOrderBill(){$("orderBillModal").classList.add("hidden")}
 async function orderStatus(id,status){if(!confirm("Confirm "+status+"?"))return;try{await api("/api/orders/"+id+"/status",{method:"PATCH",body:JSON.stringify({status})});loadOrders()}catch(e){alert(e.message)}}
 
-let angadiaAccounts={customers:[],suppliers:[],home:null};
+let angadiaAccounts={customers:[],suppliers:[],home:null},angadiaCodeRecords=[];
 function getAngadiaAccount(value){
  if(!value)return null; const [type,id]=value.split("|");
  if(type==="home")return angadiaAccounts.home;
  return (type==="customer"?angadiaAccounts.customers:angadiaAccounts.suppliers).find(x=>x.id===id)||null;
+}
+function lookupAngadiaCode(side,value){
+ const prefix=side==="sender"?"angadiaSender":"angadiaReceiver";
+ const name=$(prefix+"Name"),ledger=$(prefix+"Ledger"),preview=$(prefix+"Preview");
+ const code=String(value||"").trim();
+ let account=null;
+ if(code.length===3){
+  if(code==="801"&&angadiaAccounts.home) account={...angadiaAccounts.home,type:"home",code:"801"};
+  else {
+   const assigned=angadiaCodeRecords.find(x=>String(x.code)===code&&x.active!==false);
+   if(assigned){
+    const customerId=assigned.customer_id||assigned.customers?.id;
+    const customer=(angadiaAccounts.customers||[]).find(x=>String(x.id)===String(customerId));
+    if(customer) account={...customer,type:"customer",code};
+   }
+  }
+ }
+ if(side==="sender")angadiaSender=account;else angadiaReceiver=account;
+ if(!account){
+  name.textContent=code.length===3?"Invalid Code":"";
+  name.style.color=code.length===3?"#b42318":"";
+  ledger.textContent="—";preview.textContent="—";
+ }else{
+  name.style.color="#087443";
+  renderAngadiaParty(side,account);
+ }
+ updateAngadiaPreview();
 }
 function selectAngadiaAccount(side,value){
  const account=getAngadiaAccount(value);
@@ -397,8 +424,8 @@ function selectAngadiaAccount(side,value){
 function renderAngadiaParty(side,account){
  const prefix=side==="sender"?"angadiaSender":"angadiaReceiver";
  const name=$(prefix+"Name"),ledger=$(prefix+"Ledger"),preview=$(prefix+"Preview");
- if(!account){name.textContent="Select "+side+" account";ledger.textContent="—";preview.textContent="—";return;}
- name.textContent=(account.code?account.code+" - ":"")+account.name+(account.type==="supplier"?" · SUPPLIER":account.type==="home"?" · HOME":"");
+ if(!account){name.textContent="";ledger.textContent="—";preview.textContent="—";return;}
+ name.textContent=(account.name||"")+(account.type==="supplier"?" · SUPPLIER":account.type==="home"?" · HOME":"");name.style.color="#087443";
  const amount=Number($("angadiaAmount")?.value||0),current=Number(account.balance||0),after=current+(side==="sender"?-amount:amount);
  ledger.textContent="₹"+current.toFixed(2);preview.textContent="₹"+after.toFixed(2);
 }
@@ -413,16 +440,17 @@ async function quickAddAngadiaCustomer(){
  const name=$("angadiaQuickName").value.trim(),code=$("angadiaQuickCode").value.trim(),msg=$("angadiaQuickMessage");
  if(!name||!/^[0-9]{3}$/.test(code)){msg.textContent="Enter customer name and exactly 3 digits.";return;}
  const btn=document.querySelector(".angadia-quick-add button");btn.disabled=true;msg.textContent="Adding...";
- try{const result=await api("/api/angadia/quick-customer",{method:"POST",body:JSON.stringify({name,code})});msg.textContent="Added: "+result.customer.display_name+" · Code "+result.code;$("angadiaQuickName").value="";$("angadiaQuickCode").value="";await loadAngadiaAccounts();const v="customer|"+result.customer.id;$("angadiaSenderSelect").value=v;selectAngadiaAccount("sender",v);await loadAngadiaCodes();}
+ try{const result=await api("/api/angadia/quick-customer",{method:"POST",body:JSON.stringify({name,code})});msg.textContent="Added: "+result.customer.display_name+" · Code "+result.code;$("angadiaQuickName").value="";$("angadiaQuickCode").value="";await Promise.all([loadAngadiaAccounts(),loadAngadiaCodes()]);$("angadiaSenderCode").value=String(result.code);lookupAngadiaCode("sender",String(result.code));}
  catch(e){msg.textContent=e.message||"Could not add customer.";}finally{btn.disabled=false;}
 }
 async function loadAngadiaAccounts(){
  const data=await api("/api/angadia/accounts");angadiaAccounts=data;
  $("angadiaHomeBalance").textContent="₹"+Number(data.home?.balance||0).toFixed(2);
- const opts=[...(data.customers||[]).map(x=>'<option value="customer|'+esc(x.id)+'">'+esc((x.code?x.code+" - ":"")+x.name)+'</option>'),...(data.suppliers||[]).map(x=>'<option value="supplier|'+esc(x.id)+'">'+esc(x.name+" · SUPPLIER")+'</option>'),'<option value="home|home">HOME · 801</option>'].join("");
- for(const id of ["angadiaSenderSelect","angadiaReceiverSelect"]){const previous=$(id).value;$(id).innerHTML='<option value="">Select Customer / Supplier</option>'+opts;if(previous&&getAngadiaAccount(previous))$(id).value=previous;}
- angadiaSender=getAngadiaAccount($("angadiaSenderSelect").value);angadiaReceiver=getAngadiaAccount($("angadiaReceiverSelect").value);
- renderAngadiaParty("sender",angadiaSender);renderAngadiaParty("receiver",angadiaReceiver);updateAngadiaPreview();
+ const senderCode=$("angadiaSenderCode").value,receiverCode=$("angadiaReceiverCode").value;
+ angadiaSender=null;angadiaReceiver=null;
+ if(senderCode)lookupAngadiaCode("sender",senderCode);
+ if(receiverCode)lookupAngadiaCode("receiver",receiverCode);
+ updateAngadiaPreview();
 }
 async function loadAngadiaPanel(){
  if(!isAdmin())return;
@@ -453,6 +481,7 @@ async function saveAngadiaEntry(){
 }
 async function loadAngadiaCodes() {
  const list=rows(await api("/api/angadia-customer-codes"));
+ angadiaCodeRecords=list;
  $("angadiaCodeList").innerHTML=list.length?table(list,[
  ["Code",x=>'<b style="color:#1769aa;font-size:18px">'+esc(x.code)+'</b>'],
  ["Customer",x=>esc(x.customers?.display_name||"Customer")],
