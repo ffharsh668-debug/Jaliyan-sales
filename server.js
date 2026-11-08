@@ -162,7 +162,7 @@ function numericCode(code) {
 // creating a new one; UNIQUE on hashes alone cannot prevent duplicate raw codes.
 async function findAngadiaCustomerByCode(code) {
  const normalized=String(code||"").trim();
- if(/^\\d{3}$/.test(normalized)){
+ if(/^[0-9]{3}$/.test(normalized)){
   const {data,error}=await db.from("angadia_customer_codes").select("code,active,customers!inner(id,display_name,active)").eq("code",normalized).eq("active",true).maybeSingle();
   if(error)throw new Error("Could not check assigned Angadia code.");
   if(data)return data.customers&&data.customers.active!==false?data.customers:null;
@@ -996,7 +996,7 @@ app.get("/api/angadia-customer-codes",needDb,auth,admin,async(req,res)=>{
 app.post("/api/angadia-customer-codes",needDb,auth,admin,async(req,res)=>{
  try{
   const code=String(req.body.code||"").trim(),customerId=String(req.body.customer_id||"").trim();
-  if(!/^\\d{3}$/.test(code))return res.status(400).json({error:"Code must contain exactly 3 digits."});
+  if(!/^[0-9]{3}$/.test(code))return res.status(400).json({error:"Code must contain exactly 3 digits."});
   if(!customerId)return res.status(400).json({error:"Select a customer."});
   const {data:customer,error:ce}=await db.from("customers").select("id,display_name,active").eq("id",customerId).maybeSingle();
   if(ce||!customer||customer.active===false)return res.status(400).json({error:"Select an active customer."});
