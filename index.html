@@ -97,6 +97,30 @@ small{color:var(--muted)}
 .angadia-amount-card #angadiaMessage{margin-bottom:0}
 
 
+
+/* Final selected Code Entry design 09 */
+.angadia-design-09{gap:10px}
+.angadia-design-09 .angadia-party{padding:13px 14px;border:1px solid #d5e2ef;border-radius:12px;background:#fff}
+.angadia-design-09 .angadia-party-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 7px}
+.angadia-design-09 .angadia-party-head h3{font-size:14px;font-weight:800;letter-spacing:.35px;margin:0;color:#173b60}
+.angadia-design-09 .angadia-party-head>span{font-size:10px;letter-spacing:.45px;color:#607286;background:#edf4fb;border-radius:6px;padding:5px 7px}
+.angadia-design-09 .angadia-code-row{display:block}
+.angadia-design-09 .angadia-code-row input{width:100%;margin:0;min-height:42px;font-weight:650}
+.angadia-design-09 .angadia-account-preview{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;padding:8px;background:#f7fafd;border:1px solid #e1eaf3;border-radius:9px;min-height:0}
+.angadia-design-09 .angadia-party-name{grid-column:1/-1;padding:0 0 7px;border:0;border-bottom:1px solid #e2eaf2;font-size:13px;font-weight:800;color:#173b60}
+.angadia-design-09 .angadia-ledger-values{gap:7px}
+.angadia-design-09 .angadia-ledger-values>div{padding:7px 5px;background:#edf5fd;border:1px solid #d7e7f6;border-radius:8px}
+.angadia-design-09 .angadia-ledger-values small{font-size:10px;letter-spacing:.45px}
+.angadia-design-09 .angadia-ledger-values b{font-size:17px}
+.angadia-design-09 .angadia-party-recent{grid-column:1/-1;padding-top:5px;border-top:1px solid #e5edf4}
+.angadia-design-09 .angadia-amount-card{padding:13px 14px;border:1px solid #d5e2ef;border-radius:12px}
+.angadia-design-09 .angadia-amount-card label{font-size:12px;font-weight:800;letter-spacing:.4px}
+.angadia-design-09 .angadia-amount-card input{width:100%;margin:4px 0 8px}
+.angadia-design-09 #angadiaAmount{font-size:20px!important;font-weight:800;min-height:50px}
+.angadia-design-09 #angadiaSaveButton{width:100%;min-height:46px;font-size:14px;letter-spacing:.5px}
+.angadia-design-09 #angadiaPreview{font-size:12px;line-height:1.5}
+@media(max-width:600px){.angadia-design-09 .angadia-party{padding:12px}.angadia-design-09 .angadia-ledger-values b{font-size:16px}}
+
 /* Customer shopping and order experience */
 .section-hint{color:#68798a;margin:-5px 0 16px;font-size:13px}
 #productList{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
@@ -149,23 +173,23 @@ small{color:var(--muted)}
 <h2>Angadia – Code Entry</h2>
 <p class="section-hint">Enter Sender and Receiver customer codes. Both current ledgers and the transaction preview appear before saving.</p>
 <section class="item"><h3>Manually Assign 3-Digit Code</h3><p class="section-hint">Admin creates the code manually and links it to one customer. This code works only inside admin Code Entry, not normal login.</p><div class="grid"><input id="angadiaManualCode" type="text" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="Your 3-digit code" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3)"><select id="angadiaCodeCustomer"><option value="">Select customer</option></select></div><button type="button" class="green" onclick="saveAngadiaCustomerCode()">SAVE CUSTOMER CODE</button><div id="angadiaCodeMessage" class="msg" aria-live="polite"></div><h3>Saved 3-Digit Codes</h3><div id="angadiaCodeList"></div></section>
-<div class="angadia-transfer">
+<div class="angadia-transfer angadia-design-09">
   <section class="item angadia-party">
-    <div class="angadia-party-head"><h3>Sender</h3><span>Ledger <small>(preview)</small></span></div>
-    <div class="angadia-code-row"><input id="angadiaSenderCode" autocomplete="off" placeholder="Sender code — auto lookup" oninput="handleAngadiaCodeInput('sender')"></div>
-    <div id="angadiaSenderInfo" class="angadia-account-preview"><small>Enter sender code</small></div>
+    <div class="angadia-party-head"><h3>FROM · SENDER</h3><span>LEDGER / PREVIEW</span></div>
+    <div class="angadia-code-row"><input id="angadiaSenderCode" autocomplete="off" inputmode="numeric" placeholder="Sender code (e.g. 801)" oninput="handleAngadiaCodeInput('sender')"></div>
+    <div id="angadiaSenderInfo" class="angadia-account-preview"><small>Enter sender code to see name, ledger and preview.</small></div>
   </section>
   <section class="item angadia-party">
-    <div class="angadia-party-head"><h3>Receiver</h3><span>Ledger <small>(preview)</small></span></div>
-    <div class="angadia-code-row"><input id="angadiaReceiverCode" autocomplete="off" placeholder="Receiver code — auto lookup" oninput="handleAngadiaCodeInput('receiver')"></div>
-    <div id="angadiaReceiverInfo" class="angadia-account-preview"><small>Enter receiver code</small></div>
+    <div class="angadia-party-head"><h3>TO · RECEIVER</h3><span>LEDGER / PREVIEW</span></div>
+    <div class="angadia-code-row"><input id="angadiaReceiverCode" autocomplete="off" inputmode="numeric" placeholder="Receiver code (e.g. 456)" oninput="handleAngadiaCodeInput('receiver')"></div>
+    <div id="angadiaReceiverInfo" class="angadia-account-preview"><small>Enter receiver code to see name, ledger and preview.</small></div>
   </section>
   <section class="item angadia-amount-card">
-    <label for="angadiaAmount">Amount (₹)</label>
-    <input id="angadiaAmount" type="text" inputmode="decimal" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\\..*)\\./g,'$1');updateAngadiaPreview()" placeholder="500">
-    <input id="angadiaNote" placeholder="Parcel / reference number / note (optional)" oninput="updateAngadiaPreview()">
-    <div id="angadiaPreview" class="angadia-transaction-preview">Check both accounts and enter amount.</div>
-    <button id="angadiaSaveButton" type="button" class="green" onclick="saveAngadiaEntry()" disabled>SAVE</button>
+    <label for="angadiaAmount">AMOUNT (₹)</label>
+    <input id="angadiaAmount" type="text" inputmode="decimal" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\\..*)\\./g,'$1');updateAngadiaPreview()" placeholder="Enter amount">
+    <input id="angadiaNote" placeholder="Note / parcel reference (optional)" oninput="updateAngadiaPreview()">
+    <div id="angadiaPreview" class="angadia-transaction-preview">Select sender and receiver, then enter amount.</div>
+    <button id="angadiaSaveButton" type="button" class="green" onclick="saveAngadiaEntry()" disabled>SAVE ENTRY</button>
     <div id="angadiaMessage" class="msg" aria-live="polite"></div>
   </section>
 </div>
@@ -330,7 +354,9 @@ function renderAngadiaParty(side, customer) {
   const value=Number(entry.amount||0);
   return esc(entry.note||"Ledger entry")+" · "+(value>=0?"+":"−")+"₹"+Math.abs(value).toFixed(2);
  }).join(" | ");
- target.innerHTML='<div class="angadia-ledger-values"><div><small>Current</small><b>₹'+current.toFixed(2)+'</b></div><div><small>After (preview)</small><b>₹'+projected.toFixed(2)+'</b></div></div><div class="angadia-party-name">'+esc(customer.display_name)+'</div>'+(recent?'<div class="angadia-party-recent">Recent: '+recent+'</div>':'');
+ const codeInput = $(side === "sender" ? "angadiaSenderCode" : "angadiaReceiverCode");
+ const codeLabel = codeInput ? codeInput.value.trim() : "";
+ target.innerHTML='<div class="angadia-party-name">'+esc(codeLabel ? codeLabel+" - "+customer.display_name : customer.display_name)+'</div><div class="angadia-ledger-values"><div><small>LEDGER</small><b>₹'+current.toFixed(2)+'</b></div><div><small>PREVIEW</small><b>₹'+projected.toFixed(2)+'</b></div></div>'+(recent?'<div class="angadia-party-recent">Recent: '+recent+'</div>':'');
 }
 const angadiaLookupTimers = {sender:null,receiver:null};
 const angadiaLookupVersions = {sender:0,receiver:0};
