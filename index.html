@@ -433,6 +433,24 @@ async function loadAngadiaPanel(){
   await Promise.all([loadAngadiaAccounts(),loadAngadiaCodes()]);
  }catch(e){$("angadiaMessage").textContent=e.message||"Could not load accounts.";}
 }
+
+async function saveAngadiaEntry(){
+ updateAngadiaPreview();if($("angadiaSaveButton").disabled)return;
+ if(!confirm("Save this entry? Sender will be debited and Receiver will be credited."))return;
+ const button=$("angadiaSaveButton");button.disabled=true;button.textContent="SAVING...";
+ try{
+  const result=await api("/api/angadia/transfer",{method:"POST",body:JSON.stringify({
+   sender_type:angadiaSender.type,sender_id:angadiaSender.id,
+   receiver_type:angadiaReceiver.type,receiver_id:angadiaReceiver.id,
+   amount:Number($("angadiaAmount").value),note:$("angadiaNote").value.trim()
+  })});
+  $("angadiaMessage").innerHTML='<b style="color:#087443">Entry saved successfully.</b> Entry Code: <b>'+esc(result.entry.entry_code)+'</b>';
+  $("angadiaAmount").value="";$("angadiaNote").value="";
+  await loadAngadiaAccounts();await loadLedger();await loadSupplierLedger();
+  updateAngadiaPreview();
+ }catch(e){$("angadiaMessage").textContent=e.message||"Could not save entry.";}
+ finally{button.textContent="SAVE";updateAngadiaPreview();}
+}
 async function loadAngadiaCodes() {
  const list=rows(await api("/api/angadia-customer-codes"));
  $("angadiaCodeList").innerHTML=list.length?table(list,[
