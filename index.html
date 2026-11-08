@@ -430,7 +430,7 @@ async function loadAngadiaCodes() {
 }
 async function saveAngadiaCustomerCode() {
  const code=$("angadiaManualCode").value.trim(), customer_id=$("angadiaCodeCustomer").value, message=$("angadiaCodeMessage");
- if(!/^\\d{3}$/.test(code)){message.textContent="Enter exactly 3 digits.";return;}
+ if(!/^[0-9]{3}$/.test(code)){message.textContent="Enter exactly 3 digits.";return;}
  if(!customer_id){message.textContent="Select a customer.";return;}
  try{await api("/api/angadia-customer-codes",{method:"POST",body:JSON.stringify({code,customer_id})});$("angadiaManualCode").value="";message.textContent="3-digit code saved and linked to customer.";await loadAngadiaCodes();}
  catch(error){message.textContent=error.message;}
