@@ -1025,21 +1025,19 @@ app.delete("/api/angadia-customer-codes/:id",needDb,auth,admin,async(req,res)=>{
 
 app.get("/api/angadia/accounts",needDb,auth,admin,async(req,res)=>{
  try{
-  const [cr, sr, codes, home] = await Promise.all([
+  const [cr,sr,codes,cl,sl]=await Promise.all([
    db.from("customers").select("id,display_name,active").eq("active",true).order("display_name"),
    db.from("suppliers").select("id,name,active").eq("active",true).order("name"),
    db.from("angadia_customer_codes").select("code,customer_id").eq("active",true),
-   db.from("home_ledger_entries").select("amount")
-  ]);
-  if(cr.error||sr.error||codes.error||home.error) throw new Error("Could not load account list.");
-  const [cl, sl] = await Promise.all([
    db.from("ledger_entries").select("customer_id,amount"),
    db.from("supplier_ledger_entries").select("supplier_id,amount")
   ]);
-  if(cl.error||sl.error) throw new Error("Could not load account balances.");
-  const cbal={},sbal={}; (cl.data||[]).forEach(x=>cbal[x.customer_id]=(cbal[x.customer_id]||0)+Number(x.amount||0)); (sl.data||[]).forEach(x=>sbal[x.supplier_id]=(sbal[x.supplier_id]||0)+Number(x.amount||0));
-  const codeMap={}; (codes.data||[]).forEach(x=>codeMap[x.customer_id]=x.code);
-  res.json({customers:(cr.data||[]).map(x=>({type:"customer",id:x.id,name:x.display_name,code:codeMap[x.id]||"",balance:cbal[x.id]||0})),suppliers:(sr.data||[]).map(x=>({type:"supplier",id:x.id,name:x.name,balance:sbal[x.id]||0})),home:{type:"home",id:"home",name:"HOME",code:"801",balance:(home.data||[]).reduce((a,x)=>a+Number(x.amount||0),0)}});
+  if(cr.error||sr.error||codes.error||cl.error||sl.error)throw new Error("Could not load account list or balances.");
+  const cbal={},sbal={};(cl.data||[]).forEach(x=>cbal[x.customer_id]=(cbal[x.customer_id]||0)+Number(x.amount||0));(sl.data||[]).forEach(x=>sbal[x.supplier_id]=(sbal[x.supplier_id]||0)+Number(x.amount||0));
+  const codeMap={};(codes.data||[]).forEach(x=>codeMap[x.customer_id]=x.code);
+  const home=(cr.data||[]).find(x=>String(x.display_name||"").trim().toLowerCase()==="home");
+  if(!home)throw new Error("HOME account not found. Keep the existing HOME customer active.");
+  res.json({customers:(cr.data||[]).filter(x=>x.id!==home.id).map(x=>({type:"customer",id:x.id,name:x.display_name,code:codeMap[x.id]||"",balance:cbal[x.id]||0})),suppliers:(sr.data||[]).map(x=>({type:"supplier",id:x.id,name:x.name,balance:sbal[x.id]||0})),home:{type:"home",id:home.id,name:"HOME",code:codeMap[home.id]||"801",balance:cbal[home.id]||0}});
  }catch(e){res.status(500).json({error:e.message||"Could not load accounts."});}
 });
 app.post("/api/angadia/quick-customer",needDb,auth,admin,async(req,res)=>{
