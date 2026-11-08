@@ -152,12 +152,12 @@ small{color:var(--muted)}
 <div class="angadia-transfer">
   <section class="item angadia-party">
     <div class="angadia-party-head"><h3>Sender</h3><span>Ledger <small>(preview)</small></span></div>
-    <div class="angadia-code-row"><input id="angadiaSenderCode" autocomplete="off" placeholder="Sender code" oninput="angadiaSender=null;renderAngadiaParty('sender',null);updateAngadiaPreview()"><button type="button" onclick="lookupAngadiaParty('sender')">CHECK</button></div>
+    <div class="angadia-code-row"><input id="angadiaSenderCode" autocomplete="off" placeholder="Sender code — auto lookup" oninput="handleAngadiaCodeInput('sender')"></div>
     <div id="angadiaSenderInfo" class="angadia-account-preview"><small>Enter sender code</small></div>
   </section>
   <section class="item angadia-party">
     <div class="angadia-party-head"><h3>Receiver</h3><span>Ledger <small>(preview)</small></span></div>
-    <div class="angadia-code-row"><input id="angadiaReceiverCode" autocomplete="off" placeholder="Receiver code" oninput="angadiaReceiver=null;renderAngadiaParty('receiver',null);updateAngadiaPreview()"><button type="button" onclick="lookupAngadiaParty('receiver')">CHECK</button></div>
+    <div class="angadia-code-row"><input id="angadiaReceiverCode" autocomplete="off" placeholder="Receiver code — auto lookup" oninput="handleAngadiaCodeInput('receiver')"></div>
     <div id="angadiaReceiverInfo" class="angadia-account-preview"><small>Enter receiver code</small></div>
   </section>
   <section class="item angadia-amount-card">
@@ -322,7 +322,7 @@ function closeOrderBill(){$("orderBillModal").classList.add("hidden")}
 async function orderStatus(id,status){if(!confirm("Confirm "+status+"?"))return;try{await api("/api/orders/"+id+"/status",{method:"PATCH",body:JSON.stringify({status})});loadOrders()}catch(e){alert(e.message)}}
 function renderAngadiaParty(side, customer) {
  const target = $(side === "sender" ? "angadiaSenderInfo" : "angadiaReceiverInfo");
- if (!customer) { target.innerHTML="<small>Enter "+(side==="sender"?"sender":"receiver")+" code and tap CHECK.</small>"; return; }
+ if (!customer) { target.innerHTML="<small>Enter "+(side==="sender"?"sender":"receiver")+" code; account will appear automatically.</small>"; return; }
  const amount = Number($("angadiaAmount")?.value || 0);
  const current = Number(customer.balance || 0);
  const projected = current + (side === "sender" ? -amount : amount);
@@ -332,7 +332,44 @@ function renderAngadiaParty(side, customer) {
  }).join(" | ");
  target.innerHTML='<div class="angadia-ledger-values"><div><small>Current</small><b>₹'+current.toFixed(2)+'</b></div><div><small>After (preview)</small><b>₹'+projected.toFixed(2)+'</b></div></div><div class="angadia-party-name">'+esc(customer.display_name)+'</div>'+(recent?'<div class="angadia-party-recent">Recent: '+recent+'</div>':'');
 }
-async function lookupAngadiaParty(side) {
+const angadiaLookupTimers = {sender:null,receiver:null};
+const angadiaLookupVersions = {sender:0,receiver:0};
+function handleAngadiaCodeInput(side) {
+ const input=$(side==="sender"?"angadiaSenderCode":"angadiaReceiverCode");
+ const code=input.value.trim();
+ angadiaLookupVersions[side]++;
+ const version=angadiaLookupVersions[side];
+ if(angadiaLookupTimers[side]) clearTimeout(angadiaLookupTimers[side]);
+ if(side==="sender") angadiaSender=null; else angadiaReceiver=null;
+ renderAngadiaParty(side,null);
+ updateAngadiaPreview();
+ // Assigned codes are exactly 3 digits; regular customer access codes are 6–12 characters.
+ if(!(code.length===3 || code.length>=6)) return;
+ const target=$(side==="sender"?"angadiaSenderInfo":"angadiaReceiverInfo");
+ target.innerHTML="<small>Looking up account…</small>";
+ angadiaLookupTimers[side]=setTimeout(()=>lookupAngadiaParty(side,version),350);
+}
+async function lookupAngadiaParty(side, expectedVersion) {
+ const code = $(side === "sender" ? "angadiaSenderCode" : "angadiaReceiverCode").value.trim();
+ const message = $("angadiaMessage");
+ const version = expectedVersion ?? ++angadiaLookupVersions[side];
+ if (!code) { renderAngadiaParty(side,null); return; }
+ try {
+  const customer = await api("/api/angadia/lookup", {method:"POST", body:JSON.stringify({code})});
+  if(version!==angadiaLookupVersions[side] || code!==$(side==="sender"?"angadiaSenderCode":"angadiaReceiverCode").value.trim()) return;
+  if (side === "sender") angadiaSender = customer; else angadiaReceiver = customer;
+  renderAngadiaParty(side, customer);
+  if(message) message.textContent = "";
+  updateAngadiaPreview();
+ } catch (error) {
+  if(version!==angadiaLookupVersions[side] || code!==$(side==="sender"?"angadiaSenderCode":"angadiaReceiverCode").value.trim()) return;
+  if (side === "sender") angadiaSender = null; else angadiaReceiver = null;
+  const target=$(side==="sender"?"angadiaSenderInfo":"angadiaReceiverInfo");
+  target.innerHTML="<small>"+esc(error.message||"Customer not found.")+"</small>";
+  updateAngadiaPreview();
+ }
+}
+
  const code = $(side === "sender" ? "angadiaSenderCode" : "angadiaReceiverCode").value.trim();
  const message = $("angadiaMessage");
  if (!code) { message.textContent = "Enter the "+side+" customer code first."; return; }
