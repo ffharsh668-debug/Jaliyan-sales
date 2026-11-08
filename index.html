@@ -60,6 +60,20 @@ small{color:var(--muted)}
 @media print{header,.tabs,#app>.card:first-child{display:none!important}.card{box-shadow:none}}
 
 
+/* Angadia dual-customer code entry */
+.angadia-parties{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.angadia-party h3,.angadia-preview h3{margin:0 0 10px}
+.angadia-account-preview{margin-top:10px;padding:11px;border:1px solid #dce6f0;border-radius:10px;background:#f7fafd;min-height:85px;overflow-wrap:anywhere}
+.angadia-account-preview .angadia-balance{font-size:20px;font-weight:800;color:#145f9c;margin:4px 0}
+.angadia-recent{border-top:1px solid #e4ebf2;margin-top:9px;padding-top:7px;font-size:12px}
+.angadia-recent-row{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #edf1f5}
+.angadia-preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.angadia-preview-cell{padding:12px;border-radius:10px;background:#edf5fd;border:1px solid #d8e8f7}
+.angadia-preview-cell b{display:block;font-size:15px;margin:3px 0}
+.angadia-preview-cell small{display:block}
+#angadiaSaveButton:disabled{opacity:.5;cursor:not-allowed;transform:none}
+@media(max-width:650px){.angadia-parties{grid-template-columns:1fr}.angadia-preview-grid{grid-template-columns:1fr 1fr}}
+
 /* Customer shopping and order experience */
 .section-hint{color:#68798a;margin:-5px 0 16px;font-size:13px}
 #productList{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
@@ -97,7 +111,7 @@ small{color:var(--muted)}
 </style></head><body><header><h1>JALIYAAN SALES</h1><p>Sales & Customer Management Portal</p><select id="languageSelect" onchange="setLanguage(this.value)" style="max-width:190px;margin:12px auto 0;background:white;color:#17243a"><option value="en">English</option><option value="gu">ગુજરાતી (Gujarati)</option></select></header><main>
 <section id="login" class="card"><h2>Welcome</h2><p>Apna access code daalein.</p><input id="code" type="password" placeholder="Admin / Customer Code"><label><input id="age" type="checkbox" style="width:auto"> I confirm I meet the applicable legal age requirement.</label><button onclick="login()">LOGIN</button><div id="loginMsg" class="msg"></div><small>Age confirmation alone is not legal identity verification. Follow applicable laws.</small></section>
 <section id="app" class="hidden"><div class="card"><b id="welcome">Dashboard</b><button class="red" onclick="logout()">LOGOUT</button></div>
-<nav id="adminNav" class="tabs hidden"><button onclick="tab('overview')">Overview</button><button onclick="tab('products')">Products</button><button onclick="tab('suppliers')">Suppliers</button><button onclick="tab('supplierLedger')">Supplier Hisaab</button><button onclick="tab('purchases')">Purchases</button><button onclick="tab('expenses')">Expenses</button><button onclick="tab('payments')">Payments</button><button onclick="tab('customers')">Customers</button><button onclick="tab('customerLogins')">Customer Login</button><button onclick="tab('adminHistory')">Admin History</button><button onclick="tab('orders')">Orders <span id="adminOrdersBadge" class="notification-badge hidden">0</span></button><button onclick="tab('ledger')">Hisaab</button><button onclick="tab('ledgerHistory')">History</button><button onclick="tab('reports')">Reports & Export</button><button onclick="tab('inbox')">Inbox <span id="adminInboxBadge" class="notification-badge hidden">0</span></button><button onclick="tab('settings')">Settings</button></nav>
+<nav id="adminNav" class="tabs hidden"><button onclick="tab('overview')">Overview</button><button onclick="tab('products')">Products</button><button onclick="tab('suppliers')">Suppliers</button><button onclick="tab('supplierLedger')">Supplier Hisaab</button><button onclick="tab('purchases')">Purchases</button><button onclick="tab('expenses')">Expenses</button><button onclick="tab('payments')">Payments</button><button onclick="tab('customers')">Customers</button><button onclick="tab('customerLogins')">Customer Login</button><button onclick="tab('adminHistory')">Admin History</button><button onclick="tab('orders')">Orders <span id="adminOrdersBadge" class="notification-badge hidden">0</span></button><button onclick="tab('ledger')">Hisaab</button><button onclick="tab('angadiaEntries')">Code Entry</button><button onclick="tab('ledgerHistory')">History</button><button onclick="tab('reports')">Reports & Export</button><button onclick="tab('inbox')">Inbox <span id="adminInboxBadge" class="notification-badge hidden">0</span></button><button onclick="tab('settings')">Settings</button></nav>
 <nav id="customerNav" class="tabs hidden"><button onclick="tab('products')">Products</button><button onclick="tab('cart')">My Cart</button><button onclick="tab('orders')">My Orders</button><button onclick="tab('ledger')">My Hisaab</button><button onclick="tab('inbox')">Inbox <span id="customerInboxBadge" class="notification-badge hidden">0</span></button></nav>
 <div id="overview" class="card panel hidden"><h2>Business Overview</h2><div id="stats" class="grid"></div><button onclick="dashboard()">Refresh</button><div class="card" style="margin:18px 0 0;padding:16px;background:#f8fbff;border:1px solid #cbdced"><h2 style="margin-bottom:8px">Admin Quick Access</h2><p class="section-hint">All management tools are available here.</p><div class="grid"><button onclick="tab('customers')">CUSTOMERS & ADMIN CODES</button><button onclick="tab('adminHistory')">CUSTOMER BALANCE & HISAAB HISTORY</button><button onclick="tab('orders')">ORDER MANAGEMENT</button><button onclick="tab('expenses')">EXPENSE MANAGEMENT</button><button onclick="tab('payments')">PAYMENTS & RECEIPTS</button><button onclick="tab('reports')">SALES REPORTS & CSV EXPORT</button><button onclick="tab('purchases')">PURCHASE RECORDS</button><button onclick="tab('supplierLedger')">SUPPLIER HISAAB</button><button onclick="tab('customerLogins')">CUSTOMER LOGIN HISTORY</button><button onclick="tab('inbox')">CUSTOMER MESSAGES</button><button onclick="tab('settings')">BUSINESS SETTINGS</button></div></div></div><div id="products" class="card panel"><h2>Products</h2><div id="productForm" class="hidden"><div class="grid"><input id="pname" placeholder="Product name"><input id="pprice" type="text" inputmode="decimal" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1')" placeholder="Selling price ₹ (numbers only)"><input id="pcost" type="text" inputmode="decimal" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1')" placeholder="Purchase price ₹ (numbers only)"></div><button onclick="addProduct()">ADD PRODUCT</button><div id="pmsg" class="msg"></div></div><button id="profitButton" class="hidden" onclick="showProfit()">PROFIT</button><div id="profitPanel" class="msg hidden"></div><input id="productSearch" type="search" placeholder="Search products by name, brand, SKU or category..." oninput="renderProducts()"><div id="productList"></div><div id="productCheckout" class="checkout-box hidden"><h3>Quick Checkout</h3><textarea id="orderNoteQuick" maxlength="1000" placeholder="Add a note for this order (optional)"></textarea><div id="bottomSelectedList">No products selected.</div><h3 id="bottomSelectedTotal">Total: ₹0</h3><button class="green" onclick="placeOrder('productMsg')">PLACE ORDER NOW</button><div id="productMsg" class="msg"></div></div></div>
 <div id="cart" class="card panel hidden"><h2>My Cart & Order Summary</h2><textarea id="orderNoteCart" maxlength="1000" placeholder="Add a note for this order (optional)"></textarea><p class="section-hint">Please check product names, quantities and total before placing your order.</p><div id="cartList">Your cart is empty. Go to Products and add items.</div><div class="cart-summary"><div><span>Items</span><b id="cartItemCount">0</b></div><div class="cart-grand"><span>Order Total</span><strong id="cartTotal">₹0.00</strong></div></div><div class="cart-actions"><button class="green" onclick="placeOrder()">CONFIRM & PLACE ORDER</button><button class="light-btn" onclick="clearCart()">CLEAR CART</button><button class="light-btn" onclick="tab(&quot;products&quot;)">CONTINUE SHOPPING</button></div><div id="cartMsg" class="msg"></div></div>
@@ -108,6 +122,35 @@ small{color:var(--muted)}
 <div id="customerLogins" class="card panel hidden"><h2>Customer Login Details</h2><p>Customer login status and most recent login time.</p><button onclick="loadCustomerLogins()">REFRESH</button><div id="customerLoginList"></div></div><div id="customers" class="card panel hidden"><h2>Create Customer</h2><input id="cname" placeholder="Customer name"><input id="ccode" inputmode="numeric" maxlength="12" placeholder="Customer code (6-12 characters)"><button onclick="addCustomer()">CREATE CUSTOMER</button><div id="cmsg" class="msg"></div><div id="customerList"></div><hr><h2>Create Admin Code</h2><input id="adminName" placeholder="Admin name"><input id="adminCode" inputmode="numeric" maxlength="12" placeholder="New admin code (6-12 digits)"><button onclick="createAdminCode()">CREATE ADMIN CODE</button><div id="adminCodeMsg" class="msg"></div><h3>Admin Codes</h3><div id="adminCodeList"></div></div>
 <div id="adminHistory" class="card panel hidden"><h2>Customer History & Balance</h2><p class="section-hint">Yahan har customer ka total credit, debit, current balance aur poori hisaab history dikhegi. Yeh section sirf Admin ke liye hai.</p><button onclick="loadAdminHistory()">REFRESH HISTORY</button><div id="adminHistorySummary"></div><input id="adminHistorySearch" type="search" placeholder="Customer ka naam search karein..." oninput="renderAdminCustomerHistory()"><h3>Customer-wise Hisaab</h3><div id="adminCustomerHistory"></div><h3>Admin Action History</h3><div id="adminActionHistory"></div></div>
 <div id="orders" class="card panel hidden"><h2>My Orders</h2><p class="section-hint">Track your order status, review items and open your invoice anytime.</p><div class="order-tools"><input id="orderSearch" type="search" placeholder="Search order ID or product..." oninput="renderOrderList()"><select id="orderStatusFilter" onchange="renderOrderList()"><option value="all">All order statuses</option><option value="pending">Pending</option><option value="accepted">Accepted</option><option value="cancelled">Cancelled</option></select></div><div id="orderSummary" class="order-summary"></div><div id="orderProfitDetail" class="msg hidden"></div><div id="orderList"></div></div>
+<div id="angadiaEntries" class="card panel hidden">
+<h2>Angadia – Code Entry</h2>
+<p class="section-hint">Enter Sender and Receiver customer codes. Both current ledgers and the transaction preview appear before saving.</p>
+<div class="grid angadia-parties">
+  <section class="item angadia-party">
+    <h3>Sender Account</h3>
+    <input id="angadiaSenderCode" autocomplete="off" placeholder="Enter Sender customer code">
+    <button type="button" onclick="lookupAngadiaParty('sender')">CHECK SENDER</button>
+    <div id="angadiaSenderInfo" class="angadia-account-preview"><small>Sender details and current ledger will appear here.</small></div>
+  </section>
+  <section class="item angadia-party">
+    <h3>Receiver Account</h3>
+    <input id="angadiaReceiverCode" autocomplete="off" placeholder="Enter Receiver customer code">
+    <button type="button" onclick="lookupAngadiaParty('receiver')">CHECK RECEIVER</button>
+    <div id="angadiaReceiverInfo" class="angadia-account-preview"><small>Receiver details and current ledger will appear here.</small></div>
+  </section>
+</div>
+<section class="item">
+  <h3>Transaction Details</h3>
+  <input id="angadiaAmount" type="text" inputmode="decimal" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\\..*)\\./g,'$1');updateAngadiaPreview()" placeholder="Amount ₹ (numbers only)">
+  <input id="angadiaNote" placeholder="Parcel / reference number / note" oninput="updateAngadiaPreview()">
+</section>
+<section class="item angadia-preview">
+  <h3>Preview Before Save</h3>
+  <div id="angadiaPreview" class="msg">Check both customer codes and enter amount to see the transaction preview.</div>
+  <button id="angadiaSaveButton" type="button" class="green" onclick="saveAngadiaEntry()" disabled>SAVE BOTH LEDGER ENTRIES</button>
+  <div id="angadiaMessage" class="msg" aria-live="polite"></div>
+</section>
+</div>
 <div id="ledger" class="card panel hidden"><h2>Customer Hisaab</h2><div id="ledgerSummary"></div><div id="ledgerList"></div><div id="ledgerForm" class="hidden"><h3>New Customer Entry</h3><select id="ledgerCustomer" onchange="updateLedgerPreview()"><option value="">Select customer</option></select><div class="ledger-preview-row"><div id="ledgerSelectedBalance" class="ledger-balance ledger-mini-preview"><span>📒 Current</span><b id="ledgerCurrentAmount">₹0.00</b></div><div id="ledgerProjectedBalance" class="ledger-balance ledger-mini-preview"><span>🧮 After Entry</span><b id="ledgerProjectedAmount">₹0.00</b></div></div><div class="grid"><input id="lcredit" type="text" inputmode="decimal" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');updateLedgerPreview()" placeholder="+ Credit amount ₹"><input id="ldebit" type="text" inputmode="decimal" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1');updateLedgerPreview()" placeholder="- Debit amount ₹"></div><p class="ledger-preview-hint">Live preview · Save karne se pehle updated balance</p><input id="lnote" placeholder="Entry note / details"><button onclick="addLedger()">SAVE ENTRY</button><div id="lmsg" class="msg"></div></div></div>
 <div id="ledgerHistory" class="card panel hidden"><h2>Hisaab History</h2><p class="section-hint">All customer hisaab entries with note, amount, date and delete action. Admin only.</p><button onclick="loadLedgerHistory()">REFRESH HISTORY</button><div id="ledgerHistoryList"></div></div><div id="reports" class="card panel hidden"><h2>Business Reports & Export</h2><p>Sales, estimated profit, supplier balances and daily cash movement.</p><div id="reportStats" class="grid"></div><h3>Daily Cash Book</h3><div id="cashBookReport"></div><h3>Export CSV</h3><div class="grid"><button onclick="exportReport('orders')">ORDERS CSV</button><button onclick="exportReport('expenses')">EXPENSES CSV</button><button onclick="exportReport('payments')">PAYMENTS CSV</button></div><button onclick="loadReports()">REFRESH REPORTS</button><div id="reportMsg" class="msg"></div></div><div id="inbox" class="card panel hidden"><h2>Inbox</h2><div id="messageForm" class="hidden"><select id="mtype"><option value="group">All customers</option><option value="personal">One customer</option></select><input id="mcode" placeholder="Customer code for personal message"><textarea id="mbody" maxlength="5000" placeholder="Message"></textarea><button onclick="sendMessage()">SEND MESSAGE</button><div id="mmsg" class="msg"></div></div><button onclick="loadInbox()">REFRESH</button><div id="messages"></div></div>
 <div id="settings" class="card panel hidden"><h2>Business Settings</h2><p>Do not save passwords, API keys or secret tokens here.</p><div class="grid"><input id="setKey" placeholder="Setting key"><input id="setValue" placeholder="Setting value"></div><button onclick="saveSetting()">SAVE SETTING</button><div id="setMsg" class="msg"></div><div id="settingList"></div></div>
@@ -115,7 +158,7 @@ small{color:var(--muted)}
 <script>
 let me=null,products=[],customers=[],suppliers=[],cartItems=[],purchaseItems=[],currentOrders=[],customerEditItems=[];
 let currentBillOrder=null,currentBillGst=0,currentCustomerPayments=[],currentSupplierPayments=[],currentPaymentReceipt=null;
-let posCart=[],ledgerEntriesCache=[];
+let posCart=[],ledgerEntriesCache=[],angadiaSender=null,angadiaReceiver=null;
 const $=id=>document.getElementById(id), isAdmin=()=>me?.role==="admin";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rows=d=>Array.isArray(d)?d:[];
@@ -123,7 +166,7 @@ async function api(url,opt={}){let r=await fetch(url,{...opt,credentials:"includ
 function table(data,cols){return data.length?`<div class="table"><table><tr>${cols.map(c=>`<th>${c[0]}</th>`).join("")}</tr>${data.map(x=>`<tr>${cols.map(c=>`<td>${c[1](x)}</td>`).join("")}</tr>`).join("")}</table></div>`:"<p>No records found.</p>"}
 function enterApp(){if(!me)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("welcome").textContent=(me.displayName||me.role)+" — "+me.role;$("adminNav").classList.toggle("hidden",!isAdmin());$("customerNav").classList.toggle("hidden",isAdmin());$("productForm").classList.toggle("hidden",!isAdmin());$("profitButton").classList.toggle("hidden",!isAdmin());$("profitPanel").classList.add("hidden");$("ledgerForm").classList.toggle("hidden",!isAdmin());$("messageForm").classList.toggle("hidden",!isAdmin());$("productCheckout").classList.toggle("hidden",isAdmin());go(isAdmin()?"overview":"products");if(isAdmin())refreshAdminOrderBadge();if(!isAdmin())loadInbox()}async function restoreSession(){try{me=await api("/api/me");enterApp()}catch{me=null}}async function login(){const msg=$("loginMsg");const btn=document.querySelector("#login button");if(!$("age").checked){msg.textContent="Please confirm the applicable legal age requirement.";return}const code=$("code").value.trim();if(!code){msg.textContent="Please enter your access code.";return}if(btn){btn.disabled=true;btn.textContent="PLEASE WAIT..."}msg.textContent="Checking access code...";try{await api("/api/login",{method:"POST",body:JSON.stringify({code})});me=await api("/api/me");msg.textContent="";enterApp()}catch(e){me=null;msg.textContent="Login failed: "+e.message}finally{if(btn){btn.disabled=false;btn.textContent="LOGIN"}}}
 async function logout(){try{await api("/api/logout",{method:"POST"})}catch{}me=null;cartItems=[];$("app").classList.add("hidden");$("login").classList.remove("hidden");$("code").value="";$("age").checked=false}
-function go(id){document.querySelectorAll(".panel").forEach(x=>x.classList.add("hidden"));$(id).classList.remove("hidden");({overview:dashboard,products:loadProducts,suppliers:loadSuppliers,supplierLedger:loadSupplierLedger,purchases:loadPurchases,expenses:loadExpenses,payments:loadPayments,customers:loadCustomers,customerLogins:loadCustomerLogins,adminHistory:loadAdminHistory,orders:loadOrders,ledger:loadLedger,ledgerHistory:loadLedgerHistory,reports:loadReports,inbox:loadInbox,settings:loadSettings})[id]?.()}
+function go(id){document.querySelectorAll(".panel").forEach(x=>x.classList.add("hidden"));$(id).classList.remove("hidden");({overview:dashboard,products:loadProducts,suppliers:loadSuppliers,supplierLedger:loadSupplierLedger,purchases:loadPurchases,expenses:loadExpenses,payments:loadPayments,customers:loadCustomers,customerLogins:loadCustomerLogins,adminHistory:loadAdminHistory,orders:loadOrders,ledger:loadLedger,angadiaEntries:loadAngadiaPanel,ledgerHistory:loadLedgerHistory,reports:loadReports,inbox:loadInbox,settings:loadSettings})[id]?.()}
 function tab(id){go(id)}
 async function dashboard(){try{let d=await api("/api/dashboard"),names={totalProducts:"Products",totalCustomers:"Customers",totalSuppliers:"Suppliers",totalOrders:"Orders",pendingOrders:"Pending",acceptedOrders:"Accepted",totalOrderValue:"Order value ₹",totalExpenses:"Expenses ₹"};$("stats").innerHTML=Object.entries(names).map(([k,v])=>`<div class="msg">${v}<h2>${esc(d[k]||0)}</h2></div>`).join("")}catch(e){$("stats").textContent=e.message}}
 async function loadProducts(){try{products=rows(await api("/api/products"));renderProducts();$("purchaseProduct").innerHTML=products.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}catch(e){$("productList").textContent=e.message}}
@@ -258,6 +301,87 @@ function applyBillGST(){if(!currentBillOrder)return;const raw=prompt("Enter GST 
 function shareOrderBill(){if(!currentBillOrder)return;const o=currentBillOrder,items=Array.isArray(o.items)?o.items:[];const subtotal=items.reduce((n,i)=>n+(Number(i.unit_price??i.price)||0)*(Number(i.quantity)||0),0);const rate=currentBillGst;const storedRate=Number(items[0]?.gst_percent||0);const grand=storedRate>0&&rate===storedRate?Number(o.total||subtotal):subtotal+(subtotal*rate/100);const tax=grand-subtotal;const lines=["JALIYAAN SALES - INVOICE","Order: "+o.id,"Date: "+(o.created_at||""),"Status: "+(o.status||""),"Items:",...items.map(i=>String(i.name||"Product")+" x "+i.quantity+" = ₹"+((Number(i.unit_price??i.price)||0)*(Number(i.quantity)||0)).toFixed(2)),"Subtotal: ₹"+subtotal.toFixed(2),"GST ("+rate+"%): ₹"+tax.toFixed(2),"Grand Total: ₹"+grand.toFixed(2)];window.open("https://wa.me/?text="+encodeURIComponent(lines.join("\n")),"_blank")}
 function closeOrderBill(){$("orderBillModal").classList.add("hidden")}
 async function orderStatus(id,status){if(!confirm("Confirm "+status+"?"))return;try{await api("/api/orders/"+id+"/status",{method:"PATCH",body:JSON.stringify({status})});loadOrders()}catch(e){alert(e.message)}}
+function renderAngadiaParty(side, customer) {
+ const target = $(side === "sender" ? "angadiaSenderInfo" : "angadiaReceiverInfo");
+ if (!customer) { target.innerHTML="<small>Customer not checked yet.</small>"; return; }
+ const recent = (customer.recent_entries || []).map(entry => {
+  const amount = Number(entry.amount || 0);
+  return '<div class="angadia-recent-row"><span>'+esc(entry.note || "Ledger entry")+'</span><b style="color:'+(amount >= 0 ? "#087443" : "#b42318")+'">'+(amount >= 0 ? "+" : "−")+'₹'+Math.abs(amount).toFixed(2)+'</b></div>';
+ }).join("");
+ target.innerHTML = '<b>'+esc(customer.display_name)+'</b><div class="angadia-balance">₹'+Number(customer.balance || 0).toFixed(2)+'</div><small>Current ledger balance · '+(Number(customer.balance || 0) >= 0 ? "Credit" : "Debit")+'</small>'+(recent ? '<div class="angadia-recent"><b>Recent ledger entries</b>'+recent+'</div>' : '<div class="angadia-recent"><small>No recent ledger entries.</small></div>');
+}
+async function lookupAngadiaParty(side) {
+ const code = $(side === "sender" ? "angadiaSenderCode" : "angadiaReceiverCode").value.trim();
+ const message = $("angadiaMessage");
+ if (!code) { message.textContent = "Enter the "+side+" customer code first."; return; }
+ try {
+  message.textContent = "Checking "+side+" code...";
+  const customer = await api("/api/angadia/lookup", {method:"POST", body:JSON.stringify({code})});
+  if (side === "sender") angadiaSender = customer; else angadiaReceiver = customer;
+  renderAngadiaParty(side, customer);
+  message.textContent = "";
+  updateAngadiaPreview();
+ } catch (error) {
+  if (side === "sender") angadiaSender = null; else angadiaReceiver = null;
+  renderAngadiaParty(side, null);
+  message.textContent = error.message;
+  updateAngadiaPreview();
+ }
+}
+function updateAngadiaPreview() {
+ const amount = Number($("angadiaAmount")?.value || 0);
+ const senderOk = !!angadiaSender && $("angadiaSenderCode").value.trim().length > 0;
+ const receiverOk = !!angadiaReceiver && $("angadiaReceiverCode").value.trim().length > 0;
+ const same = senderOk && receiverOk && angadiaSender.id === angadiaReceiver.id;
+ const valid = senderOk && receiverOk && !same && Number.isFinite(amount) && amount > 0;
+ const preview = $("angadiaPreview");
+ if (!valid) {
+  preview.textContent = same ? "Sender and Receiver must be two different customers." : "Check both customer codes and enter a valid amount to see the transaction preview.";
+  $("angadiaSaveButton").disabled = true;
+  return;
+ }
+ const senderAfter = Number(angadiaSender.balance || 0) - amount;
+ const receiverAfter = Number(angadiaReceiver.balance || 0) + amount;
+ preview.innerHTML = '<div class="angadia-preview-grid"><div class="angadia-preview-cell"><small>SENDER · DEBIT</small><b>'+esc(angadiaSender.display_name)+'</b><strong>−₹'+amount.toFixed(2)+'</strong><small>Balance after: ₹'+senderAfter.toFixed(2)+'</small></div><div class="angadia-preview-cell"><small>RECEIVER · CREDIT</small><b>'+esc(angadiaReceiver.display_name)+'</b><strong style="color:#087443">+₹'+amount.toFixed(2)+'</strong><small>Balance after: ₹'+receiverAfter.toFixed(2)+'</small></div></div><p style="margin:10px 0 0"><b>Note:</b> '+esc($("angadiaNote").value || "—")+'</p>';
+ $("angadiaSaveButton").disabled = false;
+}
+async function saveAngadiaEntry() {
+ updateAngadiaPreview();
+ if ($("angadiaSaveButton").disabled) return;
+ if (!confirm("Save this entry? Sender will be debited and Receiver will be credited.")) return;
+ const button = $("angadiaSaveButton");
+ button.disabled = true;
+ button.textContent = "SAVING...";
+ try {
+  const result = await api("/api/angadia-entries", {method:"POST", body:JSON.stringify({
+   sender_code:$("angadiaSenderCode").value.trim(),
+   receiver_code:$("angadiaReceiverCode").value.trim(),
+   amount:Number($("angadiaAmount").value),
+   note:$("angadiaNote").value.trim()
+  })});
+  $("angadiaMessage").innerHTML = '<b style="color:#087443">Entry saved successfully.</b><br>Entry Code: <b>'+esc(result.entry.entry_code)+'</b><br>'+esc(result.sender.display_name)+' debited · '+esc(result.receiver.display_name)+' credited.';
+  $("angadiaAmount").value = "";
+  $("angadiaNote").value = "";
+  const [sender, receiver] = await Promise.all([
+   api("/api/angadia/lookup", {method:"POST",body:JSON.stringify({code:$("angadiaSenderCode").value.trim()})}),
+   api("/api/angadia/lookup", {method:"POST",body:JSON.stringify({code:$("angadiaReceiverCode").value.trim()})})
+  ]);
+  angadiaSender = sender; angadiaReceiver = receiver;
+  renderAngadiaParty("sender", sender); renderAngadiaParty("receiver", receiver);
+  await loadLedger();
+  updateAngadiaPreview();
+ } catch (error) {
+  $("angadiaMessage").textContent = error.message;
+ } finally {
+  button.textContent = "SAVE BOTH LEDGER ENTRIES";
+  updateAngadiaPreview();
+ }
+}
+function loadAngadiaPanel() {
+ if (!isAdmin()) return;
+ updateAngadiaPreview();
+}
+
 async function loadLedger(){
  try{
   const a=rows(await api("/api/ledger"));
